@@ -1,0 +1,11 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/MainMenu/MainMenu.uss?fileID=7433441132597879392&amp;guid=10b86bfdb7c584af4acead21c52a16bb&amp;type=3"/>
+    <ui:VisualElement style="flex-grow: 1; align-items: center; justify-content: flex-start;">
+        <ui:VisualElement name="Menu" style="flex-grow: 1; right: 0; flex-basis: 200px; position: relative; left: 0; top: 0; width: 200px; border-top-width: 0; border-right-width: 0; border-bottom-width: 0; border-left-width: 0; bottom: 0; align-items: stretch; height: auto; align-content: auto; align-self: center; justify-content: center; border-top-left-radius: 0; border-top-right-radius: 0;">
+            <ui:Label text="App Name" name="MainMenuLabel" class="header"/>
+            <ui:Button text="Drive Chair" name="StartChair" class="button mb-1"/>
+            <ui:Button text="Simulator" name="StartSimulator" class="button mb-1"/>
+            <ui:Button text="Quit" name="Quit" class="button"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

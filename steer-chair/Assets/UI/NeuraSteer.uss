@@ -1,0 +1,71 @@
+:root {
+}
+
+.button {
+    font-size: 18px;
+    -unity-font-style: bold;
+    border-top-width: 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    background-color: rgb(200, 200, 200);
+}
+
+.header {
+    margin-bottom: 10px;
+    font-size: 32px;
+}
+
+.side-menu {
+    width: 180px;
+    justify-content: space-between;
+}
+
+.drive-ready-btn {
+    background-color: rgb(249, 197, 55);
+    color: rgb(187, 102, 18);
+}
+
+.drive-start-btn {
+    background-color: rgb(65, 197, 5);
+}
+
+.drive-btn:disabled {
+    background-color: rgb(200, 200, 200);
+    opacity: 0.5;
+    color: rgb(27, 27, 27);
+}
+
+.drive-stop-btn {
+    color: rgb(185, 2, 2);
+    background-color: rgb(255, 255, 255);
+    border-left-color: rgb(185, 2, 2);
+    border-right-color: rgb(185, 2, 2);
+    border-top-color: rgb(185, 2, 2);
+    border-bottom-color: rgb(185, 2, 2);
+    border-top-width: 2px;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+    border-left-width: 2px;
+}
+
+.drive-stop-btn:disabled {
+}
+
+.drive-stop-gauge {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 0%;
+    width: 100%;
+    background-color: rgb(185, 2, 2);
+    transition: height 0.4s linear;
+}
+
+.mb-1 {
+    margin-bottom: 10px;
+}
