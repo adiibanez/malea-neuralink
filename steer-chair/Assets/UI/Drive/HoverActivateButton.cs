@@ -1,0 +1,65 @@
+using System;
+using UnityEngine;
+using UnityEngine.UIElements;
+
+public class HoverActivateButton
+{
+    private const float ActivationTime = 0.4f;
+
+    private readonly Button _button;
+    private readonly VisualElement _fillBar;
+
+    private float _hoverStartTime;
+    private IVisualElementScheduledItem _scheduler;
+
+    public HoverActivateButton(Button button)
+    {
+        _button = button;
+        _fillBar = button.Q<VisualElement>("StopGauge");
+
+        if(_fillBar == null)
+            throw new ArgumentNullException($"Button: {button?.name} contains no VisualElement #StopGauge");
+
+        button.RegisterCallback<MouseEnterEvent>(OnHoverEnter);
+        button.RegisterCallback<MouseLeaveEvent>(OnHoverLeave);
+    }
+
+    private void OnHoverEnter(MouseEnterEvent evt)
+    {
+        Debug.Log("OnHoverEnter");
+
+        if(!_button.enabledSelf)
+            return;
+
+        _hoverStartTime = Time.time;
+
+        _fillBar.style.height = Length.Percent(100);
+
+        _scheduler ??= _button.schedule
+            .Execute(CheckActivation)
+            .Every(16);
+
+        _scheduler.Resume();
+    }
+
+    private void OnHoverLeave(MouseLeaveEvent evt)
+    {
+        Debug.Log("OnHoverLeave");
+
+        _hoverStartTime = float.MaxValue;
+        _fillBar.style.height = Length.Percent(0);
+    }
+
+    private void CheckActivation()
+    {
+        Debug.Log("CheckActivation");
+
+        if (Time.time - _hoverStartTime >= ActivationTime)
+        {
+            _hoverStartTime = float.MaxValue;
+            _scheduler.Pause();
+            _button.SendEvent(new ClickEvent());
+            _fillBar.style.height = Length.Percent(0);
+        }
+    }
+}
