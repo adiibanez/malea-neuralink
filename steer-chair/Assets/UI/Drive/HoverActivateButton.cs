@@ -22,9 +22,10 @@ public class HoverActivateButton
 
         button.RegisterCallback<MouseEnterEvent>(OnHoverEnter);
         button.RegisterCallback<MouseLeaveEvent>(OnHoverLeave);
+        button.RegisterCallback<ClickEvent>(OnClick);
     }
 
-    private void OnHoverEnter(MouseEnterEvent evt)
+    private void OnHoverEnter(MouseEnterEvent evnt)
     {
         Debug.Log("OnHoverEnter");
 
@@ -42,10 +43,17 @@ public class HoverActivateButton
         _scheduler.Resume();
     }
 
-    private void OnHoverLeave(MouseLeaveEvent evt)
+    private void OnHoverLeave(MouseLeaveEvent evnt)
     {
         Debug.Log("OnHoverLeave");
 
+        _hoverStartTime = float.MaxValue;
+        _fillBar.style.height = Length.Percent(0);
+    }
+
+    private void OnClick(ClickEvent evnt)
+    {
+        Debug.Log("OnHoverLeave");
         _hoverStartTime = float.MaxValue;
         _fillBar.style.height = Length.Percent(0);
     }
