@@ -45,23 +45,18 @@ public class HoverActivateButton
 
     private void OnHoverLeave(MouseLeaveEvent evnt)
     {
-        Debug.Log("OnHoverLeave");
-
         _hoverStartTime = float.MaxValue;
         _fillBar.style.height = Length.Percent(0);
     }
 
     private void OnClick(ClickEvent evnt)
     {
-        Debug.Log("OnHoverLeave");
         _hoverStartTime = float.MaxValue;
         _fillBar.style.height = Length.Percent(0);
     }
 
     private void CheckActivation()
     {
-        Debug.Log("CheckActivation");
-
         if (Time.time - _hoverStartTime >= ActivationTime)
         {
             _hoverStartTime = float.MaxValue;
