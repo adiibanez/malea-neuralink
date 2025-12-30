@@ -11,9 +11,14 @@ public class DriveEvents : MonoBehaviour
 
     private HoverActivateButton _stopBtn;
 
+    private MouseJoystick _mouseJoystick;
+
     public void OnEnable()
     {
-        _buttonList ??= GetComponent<UIDocument>().rootVisualElement
+        VisualElement root = GetComponent<UIDocument>().rootVisualElement;
+
+        // Listen To Buttons
+        _buttonList ??= root
             .Query<Button>()
             .ToList()
             .ToDictionary(b => b.name);
@@ -38,6 +43,10 @@ public class DriveEvents : MonoBehaviour
                 break;
             }
         }
+
+        // Get JoystickView
+        _mouseJoystick = root.Q<MouseJoystick>("MouseJoystick");
+        _mouseJoystick.RegisterCallback<JoystickMoveEvent>(OnJoystickMoved);
     }
 
     public void OnDisable()
@@ -60,6 +69,13 @@ public class DriveEvents : MonoBehaviour
                 break;
             }
         }
+
+        _mouseJoystick.UnregisterCallback<JoystickMoveEvent>(OnJoystickMoved);
+    }
+
+    private void OnJoystickMoved(JoystickMoveEvent evnt)
+    {
+        Debug.Log("OnJoystickMoved" + evnt.Direction.ToString());
     }
 
     private void OnDriveReady(ClickEvent evnt)
@@ -72,6 +88,8 @@ public class DriveEvents : MonoBehaviour
     {
         _buttonList["StartBtn"].SetEnabled(false);
         _buttonList["StopBtn"].SetEnabled(true);
+
+        _mouseJoystick.SetEnabled(true);
     }
 
     private void OnDriveStop(ClickEvent evnt)
@@ -79,6 +97,8 @@ public class DriveEvents : MonoBehaviour
         _buttonList["ReadyBtn"].SetEnabled(true);
         _buttonList["StartBtn"].SetEnabled(false);
         _buttonList["StopBtn"].SetEnabled(false);
+
+        _mouseJoystick.SetEnabled(false);
     }
 
     private void OnQuit(ClickEvent evnt)
