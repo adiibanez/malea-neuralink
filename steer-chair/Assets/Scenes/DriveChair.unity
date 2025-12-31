@@ -222,6 +222,7 @@ GameObject:
   - component: {fileID: 734146702}
   - component: {fileID: 734146701}
   - component: {fileID: 734146700}
+  - component: {fileID: 734146703}
   m_Layer: 0
   m_Name: Drive_UIDocument
   m_TagString: Untagged
@@ -279,6 +280,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &734146703
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 734146699}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7bd97bf24137452dae8ddbcc16f6d80, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WebcamTexDemo
 --- !u!1 &944130363
 GameObject:
   m_ObjectHideFlags: 0

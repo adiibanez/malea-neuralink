@@ -27,7 +27,7 @@ public class WheelchairSimulator : MonoBehaviour
         float inputDirection = Input.GetAxis("Horizontal") * 30f;  // -30 to 30
         float inputSpeed = Input.GetAxis("Vertical") * 20f;        // -20 to 20
         
-        joystick.UpdateInput(inputDirection, inputSpeed);
+        //joystick.UpdateInput(inputDirection, inputSpeed);
         
         // Debug display
         var (speed, direction) = joystick.GetCurrentValues();

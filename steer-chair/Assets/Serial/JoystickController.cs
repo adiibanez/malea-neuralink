@@ -146,6 +146,15 @@ public class JoystickController : MonoBehaviour
             }
         }
     }
+
+    public void UpdateInput(Vector2 direction)
+    {
+        Vector2 clampedDirection = new Vector2(
+            Mathf.Clamp(direction.x, -1, 1),
+            Mathf.Clamp(direction.y, -1, 1));
+
+        UpdateInput(Vector2.Scale(new Vector2(30, 20), clampedDirection));
+    }
     
     /// <summary>
     /// Updates the internal speed and direction based on input values.
@@ -156,7 +165,7 @@ public class JoystickController : MonoBehaviour
     /// <param name="dirMax">Maximum direction input range</param>
     /// <param name="speedMin">Minimum speed input range</param>
     /// <param name="speedMax">Maximum speed input range</param>
-    public void UpdateInput(
+    private void UpdateInput(
         float directionInput, 
         float speedInput,
         float dirMin = -30f, 
