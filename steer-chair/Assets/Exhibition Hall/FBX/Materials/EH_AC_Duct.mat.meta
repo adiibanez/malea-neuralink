@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 0eb7e0ad15f8028499c4d7096b8ee967
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 196720
+  packageName: Exhibition Hall
+  packageVersion: 2019.4.24F1
+  assetPath: Assets/Exhibition Hall/FBX/Materials/EH_AC_Duct.mat
+  uploadId: 466056

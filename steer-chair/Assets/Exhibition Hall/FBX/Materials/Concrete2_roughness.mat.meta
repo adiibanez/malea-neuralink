@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 20111e4d99ee2a24baa3250fdcd1bbcf
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 196720
+  packageName: Exhibition Hall
+  packageVersion: 2019.4.24F1
+  assetPath: Assets/Exhibition Hall/FBX/Materials/Concrete2_roughness.mat
+  uploadId: 466056
