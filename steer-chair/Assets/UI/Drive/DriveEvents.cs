@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
+using System;
 
 #nullable enable
 
@@ -37,10 +38,19 @@ public class DriveEvents : MonoBehaviour
     private List<Button> _driveOperationButtons;
     private HoverActivateButton _stopBtn;
     private MouseJoystick _mouseJoystick;
+
+    private IMoveReceiver[] _joystickTargets;
+
     public void OnEnable()
     {
         _currentDriveState = DriveState.Stopped;
         _lastStateChangedAt = Time.time;
+
+        _joystickTargets = GetComponents<MonoBehaviour>()
+            .Select(m => m as IMoveReceiver)
+            .Where(m => m != null)
+            .Cast<IMoveReceiver>()
+            .ToArray();
 
         VisualElement root = GetComponent<UIDocument>().rootVisualElement;
 
@@ -158,12 +168,6 @@ public class DriveEvents : MonoBehaviour
         }
     }
 
-    private void OnJoystickMoved(JoystickMoveEvent evnt)
-    {
-        Debug.Log("OnJoystickMoved" + evnt.Direction.ToString());
-        _lastStateChangedAt = Time.time;
-    }
-
     private void OnDriveReady(ClickEvent evnt)
     {
         // Enable Start Button
@@ -209,6 +213,22 @@ public class DriveEvents : MonoBehaviour
 
         _currentDriveState = DriveState.Stopped;
         _lastStateChangedAt = Time.time;
+
+        foreach(var t in _joystickTargets)
+        {
+            t.Move(Vector2.zero);
+        }
+    }
+
+    private void OnJoystickMoved(JoystickMoveEvent evnt)
+    {
+        Debug.Log("OnJoystickMoved" + evnt.Direction.ToString());
+        _lastStateChangedAt = Time.time;
+
+        foreach(var t in _joystickTargets)
+        {
+            t.Move(evnt.Direction);
+        }
     }
 
     private void OnQuit(ClickEvent evnt)

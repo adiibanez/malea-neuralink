@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 1a65b7aad9a6d14438700acb80a5dccc
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 196720
+  packageName: Exhibition Hall
+  packageVersion: 2019.4.24F1
+  assetPath: Assets/Exhibition Hall/FBX/Materials/EH_Ceiling_Spot_Light_Chrome.mat
+  uploadId: 466056
