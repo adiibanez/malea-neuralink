@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 54c1a0a76bba21a438e979e218b566ad
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 241980
+  packageName: Stylized Motorcycle
+  packageVersion: 1.0.0
+  assetPath: Assets/stylized motorcycle/prefabs/motobike.prefab
+  uploadId: 561381

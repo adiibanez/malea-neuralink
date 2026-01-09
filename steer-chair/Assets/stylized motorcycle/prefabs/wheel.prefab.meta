@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 11b23dcc42189584b954101fac17bf91
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 241980
+  packageName: Stylized Motorcycle
+  packageVersion: 1.0.0
+  assetPath: Assets/stylized motorcycle/prefabs/wheel.prefab
+  uploadId: 561381
