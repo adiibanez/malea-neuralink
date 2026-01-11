@@ -2,13 +2,15 @@ using System;
 using System.IO.Ports;
 using System.Threading;
 using UnityEngine;
+using Sensocto;
 
 /// <summary>
 /// Abstracts serial communication to send joystick-like commands based on input values.
 /// Maps X/Y inputs (e.g., from head pose) to speed/direction values for the joystick.
 /// Handles all communication asynchronously in a background thread.
+/// Implements IMoveReceiver to integrate with DriveEvents movement broadcasting.
 /// </summary>
-public class JoystickController : MonoBehaviour
+public class JoystickController : MonoBehaviour, IMoveReceiver
 {
     [Header("Serial Settings")]
     [SerializeField] private string serialPort = "/dev/cu.usbmodem11101";
@@ -147,13 +149,17 @@ public class JoystickController : MonoBehaviour
         }
     }
 
-    public void UpdateInput(Vector2 direction)
+    /// <summary>
+    /// IMoveReceiver implementation - receives movement commands from DriveEvents.
+    /// </summary>
+    public void Move(Vector2 direction)
     {
         Vector2 clampedDirection = new Vector2(
             Mathf.Clamp(direction.x, -1, 1),
             Mathf.Clamp(direction.y, -1, 1));
 
-        UpdateInput(Vector2.Scale(new Vector2(30, 20), clampedDirection));
+        Vector2 scaled = Vector2.Scale(new Vector2(30, 20), clampedDirection);
+        UpdateInput(scaled.x, scaled.y);
     }
     
     /// <summary>

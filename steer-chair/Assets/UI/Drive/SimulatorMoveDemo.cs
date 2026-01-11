@@ -1,9 +1,5 @@
 using UnityEngine;
-
-public interface IMoveReceiver
-{
-    public void Move(Vector2 direction);
-}
+using Sensocto;
 
 public class SimulatorMoveDemo : MonoBehaviour, IMoveReceiver
 {
