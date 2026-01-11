@@ -223,6 +223,7 @@ GameObject:
   - component: {fileID: 734146701}
   - component: {fileID: 734146700}
   - component: {fileID: 734146703}
+  - component: {fileID: 734146704}
   m_Layer: 0
   m_Name: Drive_UIDocument
   m_TagString: Untagged
@@ -242,6 +243,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: adf8a834a8b7148d5bf1b486b47bf6f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DriveEvents
+  inputSource: 2
+  sensoctoProvider: {fileID: 0}
 --- !u!114 &734146701
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -292,6 +295,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7bd97bf24137452dae8ddbcc16f6d80, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WebcamTexDemo
+--- !u!114 &734146704
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 734146699}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a67b3c1d0b5c44c7eaf939d844c2341b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JoystickController
+  serialPort: /dev/cu.usbmodem11101
+  baudRate: 115200
+  updateInterval: 0.14
+  idleTimeout: 0.3
+  logCommands: 1
+  logInput: 1
 --- !u!1 &944130363
 GameObject:
   m_ObjectHideFlags: 0

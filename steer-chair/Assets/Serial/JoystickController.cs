@@ -22,6 +22,7 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
     
     [Header("Debug")]
     [SerializeField] private bool logCommands = false;
+    [SerializeField] private bool logInput = true;
     
     // Constants
     private const int NEUTRAL = 31;
@@ -160,6 +161,12 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
 
         Vector2 scaled = Vector2.Scale(new Vector2(30, 20), clampedDirection);
         UpdateInput(scaled.x, scaled.y);
+
+        if (logInput)
+        {
+            var (s, d) = GetCurrentValues();
+            Debug.Log($"[JoystickController] Move: input=({direction.x:F2}, {direction.y:F2}) -> speed={s} dir={d} -> S{s:D2}D{d:D2}R8");
+        }
     }
     
     /// <summary>
