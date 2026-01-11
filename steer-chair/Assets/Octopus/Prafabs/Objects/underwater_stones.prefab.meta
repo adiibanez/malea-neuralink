@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 8dea4754c1d2c6443abf1267a53562cd
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 305723
+  packageName: Octopus Underwater + Controller
+  packageVersion: 1.0
+  assetPath: Assets/Octopus/Prafabs/Objects/underwater_stones.prefab
+  uploadId: 723688

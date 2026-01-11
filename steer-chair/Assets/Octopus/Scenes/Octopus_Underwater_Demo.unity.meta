@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 5c546b5afb46370409e52cf3094449e8
+DefaultImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 305723
+  packageName: Octopus Underwater + Controller
+  packageVersion: 1.0
+  assetPath: Assets/Octopus/Scenes/Octopus_Underwater_Demo.unity
+  uploadId: 723688

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 215802c2f85027f4cac301483a396e29
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 305723
+  packageName: Octopus Underwater + Controller
+  packageVersion: 1.0
+  assetPath: Assets/Octopus/Animations/Octopus Animator Controller.controller
+  uploadId: 723688

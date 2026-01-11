@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: f72ed171d7f659645af96e8e4ade2b5a
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 305723
+  packageName: Octopus Underwater + Controller
+  packageVersion: 1.0
+  assetPath: Assets/Octopus/Prafabs/Background.prefab
+  uploadId: 723688

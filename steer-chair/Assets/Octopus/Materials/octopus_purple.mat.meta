@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 8e8ff4f270c8d2e4e8194623fd673353
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 305723
+  packageName: Octopus Underwater + Controller
+  packageVersion: 1.0
+  assetPath: Assets/Octopus/Materials/octopus_purple.mat
+  uploadId: 723688

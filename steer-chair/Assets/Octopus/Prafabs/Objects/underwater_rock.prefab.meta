@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: e258b3a3ff46d1c4cab11a9c3a99e979
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 305723
+  packageName: Octopus Underwater + Controller
+  packageVersion: 1.0
+  assetPath: Assets/Octopus/Prafabs/Objects/underwater_rock.prefab
+  uploadId: 723688

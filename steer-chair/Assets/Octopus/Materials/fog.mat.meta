@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: e850bae7bce948b4187a7de1ce2315b0
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 305723
+  packageName: Octopus Underwater + Controller
+  packageVersion: 1.0
+  assetPath: Assets/Octopus/Materials/fog.mat
+  uploadId: 723688

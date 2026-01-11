@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: ee4997c599f593742b83c29d9882e61c
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 305723
+  packageName: Octopus Underwater + Controller
+  packageVersion: 1.0
+  assetPath: Assets/Octopus/Scripts/OctopusVirtualJoystick.cs
+  uploadId: 723688

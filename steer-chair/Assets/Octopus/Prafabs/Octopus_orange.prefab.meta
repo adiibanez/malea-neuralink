@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: be529bd973b97654dbdf1e2a66b8a5c2
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 305723
+  packageName: Octopus Underwater + Controller
+  packageVersion: 1.0
+  assetPath: Assets/Octopus/Prafabs/Octopus_orange.prefab
+  uploadId: 723688

@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 64b741b623751b3468a92a262a586798
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 305723
+  packageName: Octopus Underwater + Controller
+  packageVersion: 1.0
+  assetPath: Assets/Octopus/Scripts/OctopusLightCookieFlowByPosition.cs
+  uploadId: 723688

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: ebffb5c00231b6141b3fa178af2cc7d2
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 305723
+  packageName: Octopus Underwater + Controller
+  packageVersion: 1.0
+  assetPath: Assets/Octopus/Prafabs/Objects/plane_fog.prefab
+  uploadId: 723688
