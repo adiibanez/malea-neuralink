@@ -5,6 +5,7 @@ using System.Linq;
 using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 using System;
+using Sensocto;
 
 #nullable enable
 
@@ -28,11 +29,22 @@ public class DriveEvents : MonoBehaviour
         Driving
     }
 
+    public enum InputSource
+    {
+        MouseJoystick,
+        Sensocto,
+        Both
+    }
+
     // This should be improved and encapsulated
     public const float ReadyTimeout = 3f;
     public const float DriveTimeout = 1.5f;
     private DriveState _currentDriveState = DriveState.Stopped;
     private float _lastStateChangedAt;
+
+    [Header("Input Source")]
+    [SerializeField] private InputSource inputSource = InputSource.Both;
+    [SerializeField] private SensoctoSensorProvider? sensoctoProvider;
 
     private Dictionary<string, Button> _fullButtonList;
     private List<Button> _driveOperationButtons;
@@ -51,6 +63,12 @@ public class DriveEvents : MonoBehaviour
             .Where(m => m != null)
             .Cast<IMoveReceiver>()
             .ToArray();
+
+        // Subscribe to Sensocto input if available
+        if (sensoctoProvider != null && (inputSource == InputSource.Sensocto || inputSource == InputSource.Both))
+        {
+            sensoctoProvider.OnMovementReceived.AddListener(OnSensoctoMovement);
+        }
 
         VisualElement root = GetComponent<UIDocument>().rootVisualElement;
 
@@ -98,6 +116,12 @@ public class DriveEvents : MonoBehaviour
     {
         OnDriveStop(null);
         _mouseJoystick.UnregisterCallback<JoystickMoveEvent>(OnJoystickMoved);
+
+        // Unsubscribe from Sensocto input
+        if (sensoctoProvider != null)
+        {
+            sensoctoProvider.OnMovementReceived.RemoveListener(OnSensoctoMovement);
+        }
 
         foreach (var b in _fullButtonList.Values)
         {
@@ -222,12 +246,31 @@ public class DriveEvents : MonoBehaviour
 
     private void OnJoystickMoved(JoystickMoveEvent evnt)
     {
+        // Skip mouse joystick input if only using Sensocto
+        if (inputSource == InputSource.Sensocto)
+            return;
+
         Debug.Log("OnJoystickMoved" + evnt.Direction.ToString());
+        BroadcastMovement(evnt.Direction);
+    }
+
+    private void OnSensoctoMovement(Vector2 direction)
+    {
+        // Skip Sensocto input if only using MouseJoystick
+        if (inputSource == InputSource.MouseJoystick)
+            return;
+
+        Debug.Log("OnSensoctoMovement" + direction.ToString());
+        BroadcastMovement(direction);
+    }
+
+    private void BroadcastMovement(Vector2 direction)
+    {
         _lastStateChangedAt = Time.time;
 
         foreach(var t in _joystickTargets)
         {
-            t.Move(evnt.Direction);
+            t.Move(direction);
         }
     }
 
