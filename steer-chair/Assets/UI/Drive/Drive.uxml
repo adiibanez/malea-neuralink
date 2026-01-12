@@ -5,12 +5,17 @@
         <ui:VisualElement name="KillSwitch" style="flex-grow: 1; position: absolute; top: 0; left: 0; right: 0; bottom: 1px;"/>
         <ui:VisualElement name="LeftMenu" picking-mode="Ignore" class="side-menu" style="width: 160px;">
             <ui:Button text="Exit" name="QuitBtn" class="button mb-1"/>
+            <ui:VisualElement name="CameraSelector" style="margin-top: 10px; background-color: rgba(255, 255, 255, 0.9); border-radius: 8px; padding: 8px;">
+                <ui:Label text="Camera" style="color: rgb(0, 0, 0); -unity-font-style: bold; margin-bottom: 4px;"/>
+                <ui:DropdownField name="CameraDropdown" style="margin: 0;"/>
+                <ui:Button text="Refresh" name="RefreshCamerasBtn" class="button" style="margin-top: 6px; font-size: 12px;"/>
+            </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="Center" picking-mode="Ignore" style="align-content: flex-end; align-self: auto; justify-content: center; margin-top: 8%; flex-grow: 1; margin-bottom: 2%;">
             <ui:VisualElement picking-mode="Ignore" name="DriveOperations" style="flex-grow: 1;">
                 <MouseJoystick name="MouseJoystick" enabled="false" picking-mode="Ignore" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; border-left-color: rgb(0, 0, 0); border-right-color: rgb(0, 0, 0); border-top-color: rgb(0, 0, 0); border-bottom-color: rgb(0, 0, 0); border-top-width: 1.5px; border-right-width: 1.5px; border-bottom-width: 1.5px; border-left-width: 1.5px; border-top-left-radius: 200px; border-top-right-radius: 200px; border-bottom-right-radius: 100px; border-bottom-left-radius: 100px;"/>
                 <ui:VisualElement picking-mode="Ignore" name="CenterOperations" style="flex-grow: 1; position: absolute; top: 0; left: 0; right: 0; bottom: 0;">
-                    <ui:VisualElement name="DeadZone" style="flex-grow: 0; width: 250px; height: 150px; background-color: rgb(255, 255, 255); position: absolute; border-top-left-radius: 200px; border-top-right-radius: 200px; border-bottom-right-radius: 200px; border-bottom-left-radius: 200px; align-items: center; justify-content: center; transform-origin: center; translate: -50% -50%; top: 60%; left: 50%; padding-top: 25px; padding-right: 15px; padding-bottom: 15px; padding-left: 15px; opacity: 0.6;">
+                    <ui:VisualElement name="DeadZone" style="flex-grow: 0; width: 250px; height: 150px; background-color: rgb(255, 255, 255); position: absolute; border-top-left-radius: 200px; border-top-right-radius: 200px; border-bottom-right-radius: 200px; border-bottom-left-radius: 200px; align-items: center; justify-content: center; transform-origin: center; translate: -50% -50%; top: 50%; left: 50%; padding-top: 25px; padding-right: 15px; padding-bottom: 15px; padding-left: 15px; opacity: 0.8; display: flex; visibility: visible; overflow: visible;">
                         <ui:VisualElement name="CenterTop" class="mb-1" style="flex-grow: 1; flex-direction: row; flex-wrap: nowrap; justify-content: center; align-items: flex-end; margin-bottom: 0;">
                             <ui:Button text="Ready" name="ReadyBtn" enabled="true" class="button drive-ready-btn drive-btn"/>
                             <ui:Button text="Start&#10;" name="StartBtn" enabled="false" class="button startbtn drive-start-btn drive-btn" style="color: rgb(0, 100, 0);"/>

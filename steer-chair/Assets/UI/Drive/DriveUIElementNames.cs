@@ -10,4 +10,6 @@ public static class DriveUIElementNames
     public const string MouseJoystick = "MouseJoystick";
 
     public const string CameraImage = "CameraImage";
+    public const string CameraDropdown = "CameraDropdown";
+    public const string RefreshCamerasBtn = "RefreshCamerasBtn";
 }
