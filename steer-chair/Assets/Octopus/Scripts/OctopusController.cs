@@ -15,6 +15,8 @@ namespace Warcool.OctopusUnderwater
 
         private void Update()
         {
+            if (joystick == null) return;
+
             // Receiving input values ​​from the joystick
             float moveX = -joystick.Horizontal(); // Inversion of horizontal control
             float moveY = joystick.Vertical();

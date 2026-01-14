@@ -1,8 +1,10 @@
 using System;
+using System.Diagnostics;
 using System.IO.Ports;
 using System.Threading;
 using UnityEngine;
 using Sensocto;
+using Debug = UnityEngine.Debug;
 
 /// <summary>
 /// Abstracts serial communication to send joystick-like commands based on input values.
@@ -21,8 +23,8 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
     [SerializeField] private float idleTimeout = 0.3f;
     
     [Header("Debug")]
-    [SerializeField] private bool logCommands = false;
-    [SerializeField] private bool logInput = true;
+    [SerializeField] private bool logCommands = true;
+    [SerializeField] private bool logInput = false;
     
     // Constants
     private const int NEUTRAL = 31;
@@ -38,7 +40,10 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
     // Timing stats
     private float? timeDiffMin = null;
     private float timeDiffMax = 0f;
-    
+
+    // Thread-safe timing (Stopwatch works across threads unlike Time.realtimeSinceStartup)
+    private Stopwatch stopwatch;
+
     // Serial
     private SerialPort ser;
     private Thread sendThread;
@@ -49,9 +54,12 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
     
     void Start()
     {
-        lastInputTime = Time.realtimeSinceStartup;
-        lastSendTime = Time.realtimeSinceStartup;
-        
+        logCommands = true; // Force enable logging
+
+        stopwatch = Stopwatch.StartNew();
+        lastInputTime = (float)stopwatch.Elapsed.TotalSeconds;
+        lastSendTime = (float)stopwatch.Elapsed.TotalSeconds;
+
         ConnectSerial();
         
         running = true;
@@ -92,7 +100,7 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
         {
             try
             {
-                float now = Time.realtimeSinceStartup;
+                float now = (float)stopwatch.Elapsed.TotalSeconds;
                 
                 int currentSpeed, currentDirection;
                 float currentLastInputTime;
@@ -188,7 +196,7 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
     {
         lock (inputLock)
         {
-            lastInputTime = Time.realtimeSinceStartup;
+            lastInputTime = (float)stopwatch.Elapsed.TotalSeconds;
             
             // Normalize and map direction (X-axis)
             float normalizedDirection = (directionInput - dirMin) / (dirMax - dirMin);

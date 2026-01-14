@@ -222,6 +222,8 @@ public class DriveEvents : MonoBehaviour
 
     private void OnDriveStop(ClickEvent? evnt)
     {
+        if (_fullButtonList == null) return;
+
         // Set Disabled State for Drive UI Elements except Ready
         _fullButtonList[DriveUIElementNames.ReadyBtn].SetEnabled(true);
         _fullButtonList[DriveUIElementNames.StartBtn].SetEnabled(false);
