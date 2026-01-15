@@ -16,6 +16,8 @@ public class MacroController : MonoBehaviour
     [Header("Serial Settings")]
     [SerializeField] private string serialPort = "/dev/cu.usbmodem11101";
     [SerializeField] private int baudRate = 115200;
+    [Tooltip("If set, MacroController will use JoystickController's serial port instead of opening its own")]
+    [SerializeField] private JoystickController sharedSerialSource;
 
     [Header("Configuration")]
     [SerializeField] private string configFileName = "MacroConfig.json";
@@ -24,6 +26,7 @@ public class MacroController : MonoBehaviour
     [SerializeField] private bool logCommands = true;
 
     private SerialPort _serialPort;
+    private bool _usingSharedSerial = false;
     private MacroConfig _config;
     private Coroutine _currentMacro;
     private bool _isExecuting;
@@ -104,9 +107,33 @@ public class MacroController : MonoBehaviour
 
     /// <summary>
     /// Connects to the serial port for sending commands.
+    /// Uses shared serial from JoystickController if available to avoid port conflicts.
     /// </summary>
     private void ConnectSerial()
     {
+        // Try to use shared serial port from JoystickController first
+        if (sharedSerialSource == null)
+        {
+            sharedSerialSource = FindFirstObjectByType<JoystickController>();
+        }
+
+        if (sharedSerialSource != null && sharedSerialSource.SharedSerialPort != null)
+        {
+            _serialPort = sharedSerialSource.SharedSerialPort;
+            _usingSharedSerial = true;
+            Debug.Log("[MacroController] Using shared serial port from JoystickController");
+            return;
+        }
+
+        // Fall back to opening our own connection
+        // Auto-detect serial port
+        string detectedPort = SerialPortUtility.GetSerialPort();
+        if (!string.IsNullOrEmpty(detectedPort))
+        {
+            Debug.Log($"[MacroController] Auto-detected serial port: {detectedPort}");
+            serialPort = detectedPort;
+        }
+
         try
         {
             _serialPort = new SerialPort(serialPort, baudRate)
@@ -117,12 +144,13 @@ public class MacroController : MonoBehaviour
                 RtsEnable = true
             };
             _serialPort.Open();
+            _usingSharedSerial = false;
             Debug.Log($"[MacroController] Serial connected on {serialPort}");
         }
         catch (Exception e)
         {
             _serialPort = null;
-            Debug.LogWarning($"[MacroController] Serial connection failed (will use shared port): {e.Message}");
+            Debug.LogWarning($"[MacroController] Serial connection failed: {e.Message}");
         }
     }
 
@@ -408,7 +436,8 @@ public class MacroController : MonoBehaviour
     {
         StopCurrentMacro();
 
-        if (_serialPort != null && _serialPort.IsOpen)
+        // Only close the port if we own it (not shared)
+        if (!_usingSharedSerial && _serialPort != null && _serialPort.IsOpen)
         {
             _serialPort.Close();
             Debug.Log("[MacroController] Serial connection closed.");
@@ -419,7 +448,8 @@ public class MacroController : MonoBehaviour
     {
         StopCurrentMacro();
 
-        if (_serialPort != null && _serialPort.IsOpen)
+        // Only close the port if we own it (not shared)
+        if (!_usingSharedSerial && _serialPort != null && _serialPort.IsOpen)
         {
             _serialPort.Close();
         }

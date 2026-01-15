@@ -94,3 +94,12 @@
     border-top-color: rgb(255, 255, 255);
     border-bottom-color: rgb(255, 255, 255);
 }
+
+#MacroButtonsContainer, #CameraSelector {
+    opacity: 0.3;
+    transition: opacity 0.2s ease;
+}
+
+#MacroButtonsContainer:hover, #CameraSelector:hover {
+    opacity: 1;
+}

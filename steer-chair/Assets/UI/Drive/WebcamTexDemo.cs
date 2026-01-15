@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -23,6 +24,7 @@ public class WebcamTexDemo : MonoBehaviour
     private Button? _refreshBtn;
     private List<WebCamDevice> _availableDevices = new List<WebCamDevice>();
     private int _selectedIndex = -1;
+    private bool _hasVideoAuthorization = false;
 
     /// <summary>
     /// Currently active camera name.
@@ -55,6 +57,29 @@ public class WebcamTexDemo : MonoBehaviour
             _refreshBtn.clicked += RefreshCameraList;
         }
 
+        // Request video-only authorization (not microphone) to avoid claiming audio devices
+        StartCoroutine(RequestVideoAuthorizationAndInit());
+    }
+
+    private IEnumerator RequestVideoAuthorizationAndInit()
+    {
+        // Only request WebCam authorization, explicitly NOT requesting Microphone
+        // This ensures we don't claim the microphone on systems like macOS
+        yield return Application.RequestUserAuthorization(UserAuthorization.WebCam);
+
+        _hasVideoAuthorization = Application.HasUserAuthorization(UserAuthorization.WebCam);
+
+        if (!_hasVideoAuthorization)
+        {
+            Debug.LogWarning("[WebcamTexDemo] Camera authorization denied");
+            yield break;
+        }
+
+        if (logCameraChanges)
+        {
+            Debug.Log("[WebcamTexDemo] Video-only authorization granted (microphone not requested)");
+        }
+
         // Initial camera list population
         RefreshCameraList();
 
@@ -79,7 +104,12 @@ public class WebcamTexDemo : MonoBehaviour
 
     private void RefreshCameraList()
     {
-        _availableDevices = WebCamTexture.devices.ToList();
+        // Filter to video-only devices - exclude any audio capture devices
+        // This helps avoid claiming microphones on systems where camera+mic are bundled
+        _availableDevices = WebCamTexture.devices
+            .Where(d => !d.name.ToLower().Contains("microphone") &&
+                        !d.name.ToLower().Contains("audio"))
+            .ToList();
 
         if (_cameraDropdown != null)
         {
@@ -153,15 +183,22 @@ public class WebcamTexDemo : MonoBehaviour
 
     private void StartCamera(string deviceName)
     {
+        // Ensure we have video authorization before starting
+        if (!_hasVideoAuthorization)
+        {
+            Debug.LogWarning("[WebcamTexDemo] Cannot start camera - no video authorization");
+            return;
+        }
+
         // Stop existing camera
         StopCamera();
 
         if (logCameraChanges)
         {
-            Debug.Log($"[WebcamTexDemo] Starting camera: {deviceName}");
+            Debug.Log($"[WebcamTexDemo] Starting camera (video-only): {deviceName}");
         }
 
-        // Create and start new webcam texture
+        // Create and start new webcam texture - this only captures video, not audio
         _webCamTexture = new WebCamTexture(deviceName, requestedWidth, requestedHeight, requestedFPS);
         _webCamTexture.Play();
 

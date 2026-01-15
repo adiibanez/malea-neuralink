@@ -59,17 +59,30 @@ public static class SerialPortUtility
             // "/dev/cu.usbserial*",
             // "/dev/cu.wchusbserial*",
         };
-        
+
+        Debug.Log("[SerialPortUtility] Searching for macOS serial ports...");
+
         foreach (string pattern in patterns)
         {
             string[] matchingPorts = GlobPorts(pattern);
+            Debug.Log($"[SerialPortUtility] Pattern '{pattern}' found {matchingPorts.Length} ports: {string.Join(", ", matchingPorts)}");
+
             foreach (string port in matchingPorts)
             {
+                Debug.Log($"[SerialPortUtility] Trying port: {port}");
                 if (TryOpenPort(port))
+                {
+                    Debug.Log($"[SerialPortUtility] Successfully opened port: {port}");
                     return port;
+                }
+                else
+                {
+                    Debug.Log($"[SerialPortUtility] Failed to open port: {port}");
+                }
             }
         }
-        
+
+        Debug.LogWarning("[SerialPortUtility] No working port found, using fallback");
         return "/dev/cu.usbmodem11101"; // Fallback
     }
     
@@ -150,8 +163,9 @@ public static class SerialPortUtility
             }
             return true;
         }
-        catch (Exception)
+        catch (Exception e)
         {
+            Debug.Log($"[SerialPortUtility] TryOpenPort({portName}) failed: {e.Message}");
             return false;
         }
     }

@@ -51,20 +51,46 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
     
     // Thread-safe input buffer
     private readonly object inputLock = new object();
-    
-    void Start()
-    {
-        logCommands = true; // Force enable logging
 
+    /// <summary>
+    /// Exposes the serial port for sharing with other controllers (e.g., MacroController).
+    /// </summary>
+    public SerialPort SharedSerialPort => ser;
+
+    void Awake()
+    {
+        // Initialize stopwatch early so it's available if Move() is called before Start()
         stopwatch = Stopwatch.StartNew();
         lastInputTime = (float)stopwatch.Elapsed.TotalSeconds;
         lastSendTime = (float)stopwatch.Elapsed.TotalSeconds;
 
+        Debug.Log($"[JoystickController] Awake: stopwatch started, lastInputTime={lastInputTime:F3}, lastSendTime={lastSendTime:F3}");
+
+        // Auto-detect serial port if not manually set or if default doesn't exist
+        string detectedPort = SerialPortUtility.GetSerialPort();
+        if (!string.IsNullOrEmpty(detectedPort))
+        {
+            Debug.Log($"[JoystickController] Auto-detected serial port: {detectedPort} (configured: {serialPort})");
+            serialPort = detectedPort;
+        }
+
+        // Connect serial in Awake so it's available for other controllers (e.g., MacroController) in Start()
         ConnectSerial();
-        
+    }
+
+    void Start()
+    {
+        logCommands = true; // Force enable logging
+        logInput = true;    // Force enable input logging for debugging
+
+        float currentTime = (float)stopwatch.Elapsed.TotalSeconds;
+        Debug.Log($"[JoystickController] Start: currentTime={currentTime:F3}, lastInputTime={lastInputTime:F3}, timeSinceAwake={(currentTime - lastInputTime):F3}s");
+
         running = true;
         sendThread = new Thread(SendLoop) { IsBackground = true };
         sendThread.Start();
+
+        Debug.Log("[JoystickController] Start: SendLoop thread started");
     }
     
     /// <summary>
@@ -110,10 +136,24 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
                     currentSpeed = speed;
                     currentDirection = direction;
                     currentLastInputTime = lastInputTime;
-                    
+
                     // Check if idle timeout has been exceeded
-                    if (now - currentLastInputTime > idleTimeout)
+                    float timeSinceInput = now - currentLastInputTime;
+                    bool isIdle = timeSinceInput > idleTimeout;
+
+                    // Log when we have non-neutral values (before potential reset)
+                    if (currentSpeed != NEUTRAL || currentDirection != NEUTRAL)
                     {
+                        Debug.Log($"[JoystickController] SendLoop READ: speed={currentSpeed} dir={currentDirection} " +
+                                  $"now={now:F3} lastInput={currentLastInputTime:F3} timeSinceInput={timeSinceInput:F3}s isIdle={isIdle}");
+                    }
+
+                    if (isIdle)
+                    {
+                        if (currentSpeed != NEUTRAL || currentDirection != NEUTRAL)
+                        {
+                            Debug.Log($"[JoystickController] IDLE RESET: timeSinceInput={timeSinceInput:F3}s > {idleTimeout}s, resetting from S{currentSpeed}D{currentDirection} to neutral");
+                        }
                         speed = NEUTRAL;
                         direction = NEUTRAL;
                         currentSpeed = NEUTRAL;
@@ -143,8 +183,12 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
                     
                     if (logCommands)
                     {
-                        Debug.Log($"[JoystickController] Sent: {timeDiff * 1000:F2}ms " +
-                                  $"{timeDiffMin.Value * 1000:F2}ms {timeDiffMax * 1000:F2}ms {cmd}");
+                        // Only log non-neutral commands to reduce noise, or log every 10th neutral command
+                        bool isNonNeutral = currentSpeed != NEUTRAL || currentDirection != NEUTRAL;
+                        if (isNonNeutral)
+                        {
+                            Debug.Log($"[JoystickController] SENT NON-NEUTRAL: {cmd} (now={now:F3} lastInput={currentLastInputTime:F3})");
+                        }
                     }
                 }
                 
@@ -188,28 +232,37 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
     /// <param name="speedMin">Minimum speed input range</param>
     /// <param name="speedMax">Maximum speed input range</param>
     private void UpdateInput(
-        float directionInput, 
+        float directionInput,
         float speedInput,
-        float dirMin = -30f, 
+        float dirMin = -30f,
         float dirMax = 30f,
-        float speedMin = -20f, 
+        float speedMin = -20f,
         float speedMax = 20f)
     {
         lock (inputLock)
         {
-            lastInputTime = (float)stopwatch.Elapsed.TotalSeconds;
-            
+            float newInputTime = (float)stopwatch.Elapsed.TotalSeconds;
+            float oldInputTime = lastInputTime;
+            lastInputTime = newInputTime;
+
             // Normalize and map direction (X-axis)
             float normalizedDirection = (directionInput - dirMin) / (dirMax - dirMin);
-            direction = (int)(MIN_VAL + normalizedDirection * (MAX_VAL - MIN_VAL));
-            direction = Mathf.Clamp(direction, MIN_VAL, MAX_VAL);
-            
+            int newDirection = (int)(MIN_VAL + normalizedDirection * (MAX_VAL - MIN_VAL));
+            newDirection = Mathf.Clamp(newDirection, MIN_VAL, MAX_VAL);
+
             // Normalize and invert mapping: higher input -> lower output
             float normalizedSpeed = (speedInput - speedMin) / (speedMax - speedMin);
             float invertedSpeed = 1f - normalizedSpeed;
-            
-            speed = (int)(MIN_VAL + invertedSpeed * (MAX_VAL - MIN_VAL));
-            speed = Mathf.Clamp(speed, MIN_VAL, MAX_VAL);
+            int newSpeed = (int)(MIN_VAL + invertedSpeed * (MAX_VAL - MIN_VAL));
+            newSpeed = Mathf.Clamp(newSpeed, MIN_VAL, MAX_VAL);
+
+            int oldSpeed = speed;
+            int oldDirection = direction;
+            speed = newSpeed;
+            direction = newDirection;
+
+            Debug.Log($"[JoystickController] UpdateInput WRITE: speed {oldSpeed}->{newSpeed} dir {oldDirection}->{newDirection} " +
+                      $"lastInputTime {oldInputTime:F3}->{newInputTime:F3}");
         }
     }
     
