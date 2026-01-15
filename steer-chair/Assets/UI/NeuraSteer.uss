@@ -69,3 +69,28 @@
 .mb-1 {
     margin-bottom: 10px;
 }
+
+.macro-btn {
+    min-height: 40px;
+    transition: opacity 0.2s ease;
+}
+
+.macro-btn:hover {
+    opacity: 0.85;
+}
+
+.macro-btn:active {
+    opacity: 0.7;
+}
+
+.macro-btn-active {
+    opacity: 0.5;
+    border-top-width: 2px;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+    border-left-width: 2px;
+    border-left-color: rgb(255, 255, 255);
+    border-right-color: rgb(255, 255, 255);
+    border-top-color: rgb(255, 255, 255);
+    border-bottom-color: rgb(255, 255, 255);
+}

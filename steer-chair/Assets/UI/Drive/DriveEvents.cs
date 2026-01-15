@@ -46,6 +46,12 @@ public class DriveEvents : MonoBehaviour
     [SerializeField] private InputSource inputSource = InputSource.Both;
     [SerializeField] private SensoctoSensorProvider? sensoctoProvider;
 
+    [Header("Macro Controller")]
+    [SerializeField] private MacroButtonsUI? macroButtonsUI;
+
+    [Header("Right Menu")]
+    [SerializeField] private RightMenuButtons? rightMenuButtons;
+
     private Dictionary<string, Button> _fullButtonList;
     private List<Button> _driveOperationButtons;
     private HoverActivateButton _stopBtn;
@@ -68,6 +74,28 @@ public class DriveEvents : MonoBehaviour
         if (sensoctoProvider != null && (inputSource == InputSource.Sensocto || inputSource == InputSource.Both))
         {
             sensoctoProvider.OnMovementReceived.AddListener(OnSensoctoMovement);
+        }
+
+        // Auto-find or create MacroButtonsUI
+        if (macroButtonsUI == null)
+        {
+            macroButtonsUI = GetComponent<MacroButtonsUI>();
+        }
+        if (macroButtonsUI == null)
+        {
+            macroButtonsUI = gameObject.AddComponent<MacroButtonsUI>();
+            Debug.Log("[DriveEvents] Created MacroButtonsUI automatically");
+        }
+
+        // Auto-find or create RightMenuButtons
+        if (rightMenuButtons == null)
+        {
+            rightMenuButtons = GetComponent<RightMenuButtons>();
+        }
+        if (rightMenuButtons == null)
+        {
+            rightMenuButtons = gameObject.AddComponent<RightMenuButtons>();
+            Debug.Log("[DriveEvents] Created RightMenuButtons automatically");
         }
 
         VisualElement root = GetComponent<UIDocument>().rootVisualElement;
@@ -216,6 +244,18 @@ public class DriveEvents : MonoBehaviour
         _fullButtonList[DriveUIElementNames.StopBtn].SetEnabled(true);
         _mouseJoystick.SetEnabled(true);
 
+        // Disable macro buttons during driving to avoid conflicts
+        if (macroButtonsUI != null)
+        {
+            macroButtonsUI.SetAllButtonsEnabled(false);
+        }
+
+        // Disable right menu buttons during driving
+        if (rightMenuButtons != null)
+        {
+            rightMenuButtons.SetAllButtonsEnabled(false);
+        }
+
         _currentDriveState = DriveState.Driving;
         _lastStateChangedAt = Time.time;
     }
@@ -235,6 +275,19 @@ public class DriveEvents : MonoBehaviour
         foreach (var b in _driveOperationButtons)
         {
             b.SetEnabled(true);
+        }
+
+        // Stop any executing macro and enable macro buttons
+        if (macroButtonsUI != null)
+        {
+            macroButtonsUI.StopCurrentMacro();
+            macroButtonsUI.SetAllButtonsEnabled(true);
+        }
+
+        // Enable right menu buttons
+        if (rightMenuButtons != null)
+        {
+            rightMenuButtons.SetAllButtonsEnabled(true);
         }
 
         _currentDriveState = DriveState.Stopped;
