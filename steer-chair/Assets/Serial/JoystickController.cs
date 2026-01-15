@@ -168,7 +168,8 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
             Mathf.Clamp(direction.y, -1, 1));
 
         Vector2 scaled = Vector2.Scale(new Vector2(30, 20), clampedDirection);
-        UpdateInput(scaled.x, scaled.y);
+
+        UpdateInput(scaled.x, scaled.y * -1);
 
         if (logInput)
         {
