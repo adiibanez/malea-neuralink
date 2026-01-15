@@ -55,9 +55,9 @@ public static class SerialPortUtility
         string[] patterns = new[]
         {
             "/dev/cu.usbmodem*",
-            // "/dev/cu.SLAB_USBtoUART",
-            // "/dev/cu.usbserial*",
-            // "/dev/cu.wchusbserial*",
+            "/dev/cu.usbserial*",
+            "/dev/cu.wchusbserial*",
+            "/dev/cu.SLAB_USBtoUART",
         };
 
         Debug.Log("[SerialPortUtility] Searching for macOS serial ports...");
@@ -67,23 +67,18 @@ public static class SerialPortUtility
             string[] matchingPorts = GlobPorts(pattern);
             Debug.Log($"[SerialPortUtility] Pattern '{pattern}' found {matchingPorts.Length} ports: {string.Join(", ", matchingPorts)}");
 
-            foreach (string port in matchingPorts)
+            if (matchingPorts.Length > 0)
             {
-                Debug.Log($"[SerialPortUtility] Trying port: {port}");
-                if (TryOpenPort(port))
-                {
-                    Debug.Log($"[SerialPortUtility] Successfully opened port: {port}");
-                    return port;
-                }
-                else
-                {
-                    Debug.Log($"[SerialPortUtility] Failed to open port: {port}");
-                }
+                // Return the first matching port without trying to open it
+                // (TryOpenPort can fail if port is busy but device is still correct)
+                string selectedPort = matchingPorts[0];
+                Debug.Log($"[SerialPortUtility] Selected port: {selectedPort}");
+                return selectedPort;
             }
         }
 
-        Debug.LogWarning("[SerialPortUtility] No working port found, using fallback");
-        return "/dev/cu.usbmodem11101"; // Fallback
+        Debug.LogWarning("[SerialPortUtility] No usbmodem/usbserial device found in /dev/");
+        return "";
     }
     
     private static string GetLinuxPort()

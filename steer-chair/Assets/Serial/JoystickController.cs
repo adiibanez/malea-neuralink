@@ -15,11 +15,11 @@ using Debug = UnityEngine.Debug;
 public class JoystickController : MonoBehaviour, IMoveReceiver
 {
     [Header("Serial Settings")]
-    [SerializeField] private string serialPort = "/dev/cu.usbmodem11101";
+    [SerializeField] private string serialPort = "/dev/cu.usbmodem21101";
     [SerializeField] private int baudRate = 115200;
     
     [Header("Timing")]
-    [SerializeField] private float updateInterval = 0.14f;
+    [SerializeField] private float updateInterval = 0.12f;
     [SerializeField] private float idleTimeout = 0.3f;
     
     [Header("Debug")]
@@ -66,12 +66,16 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
 
         Debug.Log($"[JoystickController] Awake: stopwatch started, lastInputTime={lastInputTime:F3}, lastSendTime={lastSendTime:F3}");
 
-        // Auto-detect serial port if not manually set or if default doesn't exist
+        // Auto-detect serial port
         string detectedPort = SerialPortUtility.GetSerialPort();
         if (!string.IsNullOrEmpty(detectedPort))
         {
-            Debug.Log($"[JoystickController] Auto-detected serial port: {detectedPort} (configured: {serialPort})");
+            Debug.Log($"[JoystickController] Auto-detected serial port: {detectedPort}");
             serialPort = detectedPort;
+        }
+        else
+        {
+            Debug.LogWarning($"[JoystickController] No serial device auto-detected, using configured: {serialPort}");
         }
 
         // Connect serial in Awake so it's available for other controllers (e.g., MacroController) in Start()
