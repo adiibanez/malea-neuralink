@@ -1,10 +1,13 @@
 using System;
 using System.Diagnostics;
-using System.IO.Ports;
 using System.Threading;
 using UnityEngine;
 using Sensocto;
 using Debug = UnityEngine.Debug;
+
+#if UNITY_EDITOR
+using System.IO.Ports;
+#endif
 
 /// <summary>
 /// Abstracts serial communication to send joystick-like commands based on input values.
@@ -44,18 +47,54 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
     // Thread-safe timing (Stopwatch works across threads unlike Time.realtimeSinceStartup)
     private Stopwatch stopwatch;
 
-    // Serial
+    // Serial - Use native implementation in builds, managed in Editor
+#if UNITY_EDITOR
     private SerialPort ser;
+#else
+    private NativeSerialPort ser;
+#endif
     private Thread sendThread;
     private volatile bool running;
-    
+
+    // Reconnection state
+    private readonly object serialLock = new object();
+    private int reconnectAttempts = 0;
+    private const int MAX_RECONNECT_DELAY_MS = 5000;
+    private const int BASE_RECONNECT_DELAY_MS = 100;
+    private float lastReconnectAttempt = 0f;
+    private int consecutiveErrors = 0;
+    private const int ERRORS_BEFORE_RECONNECT = 3;
+
     // Thread-safe input buffer
     private readonly object inputLock = new object();
 
     /// <summary>
     /// Exposes the serial port for sharing with other controllers (e.g., MacroController).
+    /// Note: The port may become null during reconnection. Callers should handle null gracefully.
     /// </summary>
-    public SerialPort SharedSerialPort => ser;
+#if UNITY_EDITOR
+    public SerialPort SharedSerialPort
+    {
+        get
+        {
+            lock (serialLock)
+            {
+                return ser;
+            }
+        }
+    }
+#else
+    public NativeSerialPort SharedSerialPort
+    {
+        get
+        {
+            lock (serialLock)
+            {
+                return ser;
+            }
+        }
+    }
+#endif
 
     void Awake()
     {
@@ -64,22 +103,58 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
         lastInputTime = (float)stopwatch.Elapsed.TotalSeconds;
         lastSendTime = (float)stopwatch.Elapsed.TotalSeconds;
 
-        Debug.Log($"[JoystickController] Awake: stopwatch started, lastInputTime={lastInputTime:F3}, lastSendTime={lastSendTime:F3}");
+        Debug.Log($"[JoystickController] Awake: isEditor={Application.isEditor}, platform={Application.platform}");
 
-        // Auto-detect serial port
-        string detectedPort = SerialPortUtility.GetSerialPort();
-        if (!string.IsNullOrEmpty(detectedPort))
+        // Try to load port from config file first (allows manual override)
+        string configPort = LoadPortFromConfig();
+        if (!string.IsNullOrEmpty(configPort))
         {
-            Debug.Log($"[JoystickController] Auto-detected serial port: {detectedPort}");
-            serialPort = detectedPort;
+            Debug.Log($"[JoystickController] Using port from config file: {configPort}");
+            serialPort = configPort;
         }
         else
         {
-            Debug.LogWarning($"[JoystickController] No serial device auto-detected, using configured: {serialPort}");
+            // Auto-detect serial port
+            string detectedPort = SerialPortUtility.GetSerialPort();
+            if (!string.IsNullOrEmpty(detectedPort))
+            {
+                Debug.Log($"[JoystickController] Auto-detected serial port: {detectedPort}");
+                serialPort = detectedPort;
+            }
+            else
+            {
+                Debug.LogWarning($"[JoystickController] No serial device auto-detected, using default: {serialPort}");
+            }
         }
 
         // Connect serial in Awake so it's available for other controllers (e.g., MacroController) in Start()
         ConnectSerial();
+    }
+
+    /// <summary>
+    /// Attempts to load serial port from a config file in StreamingAssets.
+    /// This allows manual override when auto-detection fails in builds.
+    /// Config file: StreamingAssets/serial_port.txt containing just the port path.
+    /// </summary>
+    private string LoadPortFromConfig()
+    {
+        try
+        {
+            string configPath = System.IO.Path.Combine(Application.streamingAssetsPath, "serial_port.txt");
+            if (System.IO.File.Exists(configPath))
+            {
+                string port = System.IO.File.ReadAllText(configPath).Trim();
+                if (!string.IsNullOrEmpty(port) && !port.StartsWith("#"))
+                {
+                    return port;
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[JoystickController] Could not read serial_port.txt: {e.Message}");
+        }
+        return null;
     }
 
     void Start()
@@ -98,26 +173,145 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
     }
     
     /// <summary>
-    /// Attempts to establish serial connection.
+    /// Attempts to establish serial connection. Thread-safe.
     /// </summary>
-    private void ConnectSerial()
+    /// <returns>True if connection succeeded, false otherwise.</returns>
+    private bool ConnectSerial()
     {
-        try
+        lock (serialLock)
         {
-            ser = new SerialPort(serialPort, baudRate)
+            // Clean up existing connection first
+            if (ser != null)
             {
-                ReadTimeout = 1000,
-                WriteTimeout = 1000,
-                DtrEnable = true,
-                RtsEnable = true
-            };
-            ser.Open();
-            Debug.Log($"[JoystickController] Serial connected on {serialPort}");
+                try
+                {
+                    if (ser.IsOpen)
+                        ser.Close();
+                    ser.Dispose();
+                }
+                catch { }
+                ser = null;
+            }
+
+            try
+            {
+                // Re-detect port in case it changed (device reconnected)
+                string detectedPort = SerialPortUtility.GetSerialPort();
+                if (!string.IsNullOrEmpty(detectedPort))
+                {
+                    serialPort = detectedPort;
+                }
+
+#if UNITY_EDITOR
+                ser = new SerialPort(serialPort, baudRate)
+                {
+                    ReadTimeout = 500,
+                    WriteTimeout = 500,
+                    DtrEnable = true,
+                    RtsEnable = true
+                };
+                ser.Open();
+#else
+                ser = new NativeSerialPort(serialPort, baudRate);
+#endif
+
+                reconnectAttempts = 0;
+                consecutiveErrors = 0;
+                Debug.Log($"[JoystickController] Serial connected on {serialPort}");
+                return true;
+            }
+            catch (Exception e)
+            {
+                ser = null;
+                Debug.LogWarning($"[JoystickController] Serial connection failed: {e.GetType().Name}: {e.Message}");
+                if (e.InnerException != null)
+                {
+                    Debug.LogWarning($"[JoystickController] Inner exception: {e.InnerException.GetType().Name}: {e.InnerException.Message}");
+                }
+                Debug.LogWarning($"[JoystickController] Stack trace: {e.StackTrace}");
+                return false;
+            }
         }
-        catch (Exception e)
+    }
+
+    /// <summary>
+    /// Attempts to reconnect with exponential backoff. Called from SendLoop on errors.
+    /// </summary>
+    private void TryReconnect()
+    {
+        float now = (float)stopwatch.Elapsed.TotalSeconds;
+
+        // Calculate delay with exponential backoff
+        int delayMs = Math.Min(BASE_RECONNECT_DELAY_MS * (1 << reconnectAttempts), MAX_RECONNECT_DELAY_MS);
+        float delaySec = delayMs / 1000f;
+
+        if (now - lastReconnectAttempt < delaySec)
+            return; // Not enough time has passed
+
+        lastReconnectAttempt = now;
+        reconnectAttempts++;
+
+        Debug.Log($"[JoystickController] Attempting reconnect #{reconnectAttempts} (delay was {delayMs}ms)");
+
+        if (ConnectSerial())
         {
-            ser = null;
-            Debug.LogError($"[JoystickController] Serial connection failed: {e.Message}");
+            Debug.Log("[JoystickController] Reconnection successful!");
+        }
+    }
+
+    /// <summary>
+    /// Checks if serial port is connected and usable.
+    /// </summary>
+    private bool IsSerialConnected()
+    {
+        lock (serialLock)
+        {
+            return ser != null && ser.IsOpen;
+        }
+    }
+
+    /// <summary>
+    /// Safely writes to serial port with error tracking.
+    /// </summary>
+    /// <returns>True if write succeeded, false otherwise.</returns>
+    private bool SafeSerialWrite(string data)
+    {
+        lock (serialLock)
+        {
+            if (ser == null || !ser.IsOpen)
+                return false;
+
+            try
+            {
+                ser.Write(data);
+                consecutiveErrors = 0;
+                return true;
+            }
+            catch (TimeoutException)
+            {
+                consecutiveErrors++;
+                if (consecutiveErrors >= ERRORS_BEFORE_RECONNECT)
+                {
+                    Debug.LogWarning($"[JoystickController] {consecutiveErrors} consecutive timeouts, will attempt reconnect");
+                }
+                return false;
+            }
+            catch (Exception e)
+            {
+                consecutiveErrors++;
+                Debug.LogWarning($"[JoystickController] Serial write error: {e.Message}");
+
+                // Connection is likely broken, close it so reconnect can happen
+                try
+                {
+                    ser.Close();
+                    ser.Dispose();
+                }
+                catch { }
+                ser = null;
+
+                return false;
+            }
         }
     }
     
@@ -131,10 +325,23 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
             try
             {
                 float now = (float)stopwatch.Elapsed.TotalSeconds;
-                
+
+                // Check connection state and attempt reconnect if needed
+                if (!IsSerialConnected() || consecutiveErrors >= ERRORS_BEFORE_RECONNECT)
+                {
+                    TryReconnect();
+
+                    // If still not connected, sleep and continue
+                    if (!IsSerialConnected())
+                    {
+                        Thread.Sleep(50);
+                        continue;
+                    }
+                }
+
                 int currentSpeed, currentDirection;
                 float currentLastInputTime;
-                
+
                 lock (inputLock)
                 {
                     currentSpeed = speed;
@@ -164,30 +371,26 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
                         currentDirection = NEUTRAL;
                     }
                 }
-                
+
                 string cmd = $"S{currentSpeed:D2}D{currentDirection:D2}R8";
-                
+
                 float timeDiff = now - lastSendTime;
-                
+
                 // Track timing stats
                 if (timeDiffMin == null)
                     timeDiffMin = timeDiff;
                 else
                     timeDiffMin = Mathf.Min(timeDiffMin.Value, timeDiff);
-                
+
                 timeDiffMax = Mathf.Max(timeDiffMax, timeDiff);
-                
+
                 if (timeDiff >= updateInterval)
                 {
-                    if (ser != null && ser.IsOpen)
-                    {
-                        ser.Write(cmd);
-                    }
+                    bool writeSuccess = SafeSerialWrite(cmd);
                     lastSendTime = now;
-                    
-                    if (logCommands)
+
+                    if (logCommands && writeSuccess)
                     {
-                        // Only log non-neutral commands to reduce noise, or log every 10th neutral command
                         bool isNonNeutral = currentSpeed != NEUTRAL || currentDirection != NEUTRAL;
                         if (isNonNeutral)
                         {
@@ -195,13 +398,14 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
                         }
                     }
                 }
-                
+
                 Thread.Sleep(1); // 1ms sleep to prevent busy waiting
             }
             catch (Exception e)
             {
-                Debug.LogError($"[JoystickController] Error in send loop: {e.Message}");
-                Thread.Sleep(100); // Longer sleep on error
+                // This catch is for unexpected errors not handled by SafeSerialWrite
+                Debug.LogWarning($"[JoystickController] Unexpected error in send loop: {e.Message}");
+                Thread.Sleep(50);
             }
         }
     }
@@ -287,16 +491,26 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
     public void Close()
     {
         running = false;
-        
+
         if (sendThread != null && sendThread.IsAlive)
         {
             sendThread.Join(1000); // Wait up to 1 second
         }
-        
-        if (ser != null && ser.IsOpen)
+
+        lock (serialLock)
         {
-            ser.Close();
-            Debug.Log("[JoystickController] Serial connection closed.");
+            if (ser != null)
+            {
+                try
+                {
+                    if (ser.IsOpen)
+                        ser.Close();
+                    ser.Dispose();
+                }
+                catch { }
+                ser = null;
+                Debug.Log("[JoystickController] Serial connection closed.");
+            }
         }
     }
     

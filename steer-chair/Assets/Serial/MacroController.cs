@@ -2,8 +2,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Ports;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using System.IO.Ports;
+#endif
 
 /// <summary>
 /// Handles macro/sequence execution for steering commands.
@@ -25,7 +28,11 @@ public class MacroController : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool logCommands = true;
 
+#if UNITY_EDITOR
     private SerialPort _serialPort;
+#else
+    private NativeSerialPort _serialPort;
+#endif
     private bool _usingSharedSerial = false;
     private MacroConfig _config;
     private Coroutine _currentMacro;
@@ -136,6 +143,7 @@ public class MacroController : MonoBehaviour
 
         try
         {
+#if UNITY_EDITOR
             _serialPort = new SerialPort(serialPort, baudRate)
             {
                 ReadTimeout = 1000,
@@ -144,6 +152,9 @@ public class MacroController : MonoBehaviour
                 RtsEnable = true
             };
             _serialPort.Open();
+#else
+            _serialPort = new NativeSerialPort(serialPort, baudRate);
+#endif
             _usingSharedSerial = false;
             Debug.Log($"[MacroController] Serial connected on {serialPort}");
         }
@@ -241,9 +252,16 @@ public class MacroController : MonoBehaviour
 
     /// <summary>
     /// Sends a raw command string to serial.
+    /// Handles shared serial that may be null during reconnection.
     /// </summary>
     public void SendRawCommand(string cmd)
     {
+        // Re-acquire shared serial reference in case it was reconnected
+        if (_usingSharedSerial && sharedSerialSource != null)
+        {
+            _serialPort = sharedSerialSource.SharedSerialPort;
+        }
+
         if (_serialPort != null && _serialPort.IsOpen)
         {
             try
@@ -257,7 +275,7 @@ public class MacroController : MonoBehaviour
             }
             catch (Exception e)
             {
-                Debug.LogError($"[MacroController] Send failed: {e.Message}");
+                Debug.LogWarning($"[MacroController] Send failed: {e.Message}");
             }
         }
         else if (logCommands)

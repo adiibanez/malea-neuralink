@@ -1,7 +1,10 @@
 using System;
 using System.IO;
-using System.IO.Ports;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using System.IO.Ports;
+#endif
 
 /// <summary>
 /// Utility class for auto-detecting serial ports across platforms.
@@ -36,8 +39,9 @@ public static class SerialPortUtility
     
     private static string GetWindowsPort()
     {
+#if UNITY_EDITOR
         string[] ports = SerialPort.GetPortNames();
-        
+
         foreach (string port in ports)
         {
             if (port.StartsWith("COM"))
@@ -46,12 +50,57 @@ public static class SerialPortUtility
                     return port;
             }
         }
-        
+#endif
         return "COM3"; // Fallback default
     }
     
     private static string GetMacOSPort()
     {
+        Debug.Log($"[SerialPortUtility] Searching for macOS serial ports... (isEditor={Application.isEditor})");
+
+#if UNITY_EDITOR
+        // First, try .NET SerialPort.GetPortNames() - works better in Editor
+        try
+        {
+            string[] systemPorts = SerialPort.GetPortNames();
+            Debug.Log($"[SerialPortUtility] SerialPort.GetPortNames() returned {systemPorts.Length} ports: {string.Join(", ", systemPorts)}");
+
+            foreach (string port in systemPorts)
+            {
+                if (port.Contains("usbmodem") || port.Contains("usbserial") || port.Contains("wchusbserial"))
+                {
+                    Debug.Log($"[SerialPortUtility] Found USB serial via GetPortNames: {port}");
+                    return port;
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[SerialPortUtility] SerialPort.GetPortNames() failed: {e.Message}");
+        }
+#endif
+
+        // Check if we have access to /dev directory (sandbox check)
+        try
+        {
+            bool canAccessDev = Directory.Exists("/dev");
+            Debug.Log($"[SerialPortUtility] Can access /dev: {canAccessDev}");
+
+            if (!canAccessDev)
+            {
+                Debug.LogError("[SerialPortUtility] Cannot access /dev - app may be sandboxed. See console for fix instructions.");
+                LogSandboxFixInstructions();
+                return "";
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[SerialPortUtility] Exception checking /dev access: {e.Message}");
+            LogSandboxFixInstructions();
+            return "";
+        }
+
+        // Fall back to directory scanning
         string[] patterns = new[]
         {
             "/dev/cu.usbmodem*",
@@ -60,8 +109,6 @@ public static class SerialPortUtility
             "/dev/cu.SLAB_USBtoUART",
         };
 
-        Debug.Log("[SerialPortUtility] Searching for macOS serial ports...");
-
         foreach (string pattern in patterns)
         {
             string[] matchingPorts = GlobPorts(pattern);
@@ -69,8 +116,6 @@ public static class SerialPortUtility
 
             if (matchingPorts.Length > 0)
             {
-                // Return the first matching port without trying to open it
-                // (TryOpenPort can fail if port is busy but device is still correct)
                 string selectedPort = matchingPorts[0];
                 Debug.Log($"[SerialPortUtility] Selected port: {selectedPort}");
                 return selectedPort;
@@ -79,6 +124,22 @@ public static class SerialPortUtility
 
         Debug.LogWarning("[SerialPortUtility] No usbmodem/usbserial device found in /dev/");
         return "";
+    }
+
+    private static void LogSandboxFixInstructions()
+    {
+        Debug.LogError(@"[SerialPortUtility] ===== SANDBOX FIX INSTRUCTIONS =====
+To allow serial port access in macOS builds, you need to disable App Sandbox:
+
+Option 1 - Disable sandbox via terminal after build:
+  codesign --remove-signature ""YourApp.app""
+
+Option 2 - Add entitlements file with:
+  <key>com.apple.security.app-sandbox</key>
+  <false/>
+
+Option 3 - Use the post-build script in Assets/Editor/DisableSandbox.cs
+=================================================");
     }
     
     private static string GetLinuxPort()
@@ -149,6 +210,7 @@ public static class SerialPortUtility
     /// </summary>
     private static bool TryOpenPort(string portName)
     {
+#if UNITY_EDITOR
         try
         {
             using (var port = new SerialPort(portName, 115200) { ReadTimeout = 1000 })
@@ -163,21 +225,27 @@ public static class SerialPortUtility
             Debug.Log($"[SerialPortUtility] TryOpenPort({portName}) failed: {e.Message}");
             return false;
         }
+#else
+        // In builds, we can't use SerialPort, so just check if file exists
+        return System.IO.File.Exists(portName);
+#endif
     }
-    
+
     /// <summary>
     /// Lists all available serial ports on the system.
     /// </summary>
     public static string[] ListAllPorts()
     {
         var allPorts = new System.Collections.Generic.List<string>();
-        
+
+#if UNITY_EDITOR
         // .NET provided ports (works best on Windows)
         try
         {
             allPorts.AddRange(SerialPort.GetPortNames());
         }
         catch { }
+#endif
         
         // On macOS/Linux, also check /dev directly
         if (Application.platform == RuntimePlatform.OSXPlayer ||

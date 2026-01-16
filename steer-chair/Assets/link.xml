@@ -1,0 +1,28 @@
+<linker>
+    <!-- Preserve System.IO.Ports for serial communication -->
+    <assembly fullname="System">
+        <type fullname="System.IO.Ports.*" preserve="all"/>
+    </assembly>
+
+    <!-- Preserve the mscorlib serial port internals -->
+    <assembly fullname="mscorlib">
+        <type fullname="System.IO.Ports.*" preserve="all"/>
+    </assembly>
+
+    <!-- For .NET Standard builds -->
+    <assembly fullname="System.IO.Ports">
+        <type fullname="*" preserve="all"/>
+    </assembly>
+
+    <!-- Preserve serial port implementation details -->
+    <assembly fullname="System.IO.Ports" preserve="all"/>
+    <assembly fullname="System" preserve="nothing">
+        <type fullname="System.IO.Ports.SerialPort" preserve="all"/>
+        <type fullname="System.IO.Ports.SerialData" preserve="all"/>
+        <type fullname="System.IO.Ports.SerialError" preserve="all"/>
+        <type fullname="System.IO.Ports.SerialPinChange" preserve="all"/>
+        <type fullname="System.IO.Ports.Handshake" preserve="all"/>
+        <type fullname="System.IO.Ports.Parity" preserve="all"/>
+        <type fullname="System.IO.Ports.StopBits" preserve="all"/>
+    </assembly>
+</linker>

@@ -1,0 +1,14 @@
+# Serial Port Configuration
+# If auto-detection fails in builds, create a file called "serial_port.txt"
+# (without .example) containing just the serial port path.
+#
+# Example for macOS:
+# /dev/cu.usbmodem21101
+#
+# Example for Windows:
+# COM3
+#
+# To find your port on macOS, run in Terminal:
+#   ls /dev/cu.usb*
+#
+# To find your port on Windows, check Device Manager > Ports (COM & LPT)
