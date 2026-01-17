@@ -9,7 +9,7 @@ namespace Sensocto.Models
     [Serializable]
     public class SensoctoConfig
     {
-        public string ServerUrl { get; set; } = "ws://localhost:4000/socket";
+        public string ServerUrl { get; set; } = "wss://sensocto.fly.dev/socket";
         public string BearerToken { get; set; }
         public int HeartbeatIntervalMs { get; set; } = 30000;
         public int ReconnectDelayMs { get; set; } = 1000;
@@ -74,5 +74,43 @@ namespace Sensocto.Models
                 ["bearer_token"] = BearerToken
             };
         }
+    }
+
+    /// <summary>
+    /// Configuration for registering a sensor that provides data.
+    /// Used with SensoctoClient.RegisterSensorAsync to create a SensorStream.
+    /// </summary>
+    [Serializable]
+    public class SensorConfig
+    {
+        /// <summary>
+        /// Unique sensor ID. Auto-generated if null.
+        /// </summary>
+        public string SensorId { get; set; }
+
+        /// <summary>
+        /// Human-readable sensor name.
+        /// </summary>
+        public string SensorName { get; set; } = "Unity Sensor";
+
+        /// <summary>
+        /// Sensor type (e.g., "joystick", "imu", "heartrate", "generic").
+        /// </summary>
+        public string SensorType { get; set; } = "generic";
+
+        /// <summary>
+        /// List of attribute IDs this sensor provides (e.g., ["x", "y"]).
+        /// </summary>
+        public string[] Attributes { get; set; } = Array.Empty<string>();
+
+        /// <summary>
+        /// Expected sampling rate in Hz.
+        /// </summary>
+        public int SamplingRateHz { get; set; } = 30;
+
+        /// <summary>
+        /// Number of measurements to batch before sending.
+        /// </summary>
+        public int BatchSize { get; set; } = 5;
     }
 }

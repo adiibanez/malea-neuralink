@@ -25,7 +25,7 @@ namespace Sensocto
     public class SensoctoSensorProvider : MonoBehaviour, IMoveReceiver
     {
         [Header("Connection Settings")]
-        [SerializeField] private string serverUrl = "ws://localhost:4000/socket";
+        [SerializeField] private string serverUrl = "wss://sensocto.fly.dev/socket";
         [SerializeField] private string bearerToken = "";
         [SerializeField] private bool connectOnStart = true;
         [SerializeField] private bool autoReconnect = true;

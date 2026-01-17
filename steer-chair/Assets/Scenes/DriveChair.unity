@@ -224,6 +224,7 @@ GameObject:
   - component: {fileID: 734146700}
   - component: {fileID: 734146703}
   - component: {fileID: 734146704}
+  - component: {fileID: 734146705}
   m_Layer: 0
   m_Name: Drive_UIDocument
   m_TagString: Untagged
@@ -313,6 +314,37 @@ MonoBehaviour:
   idleTimeout: 0.3
   logCommands: 1
   logInput: 1
+--- !u!114 &734146705
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 734146699}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5353a23779273419ebe14e2ae0888e57, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Sensocto::Sensocto.JoystickSensorEmitter
+  serverUrl: wss://sensocto.fly.dev/socket
+  bearerToken:
+  connectOnStart: 1
+  sensorName: DriveChair Joystick
+  sensorType: joystick
+  samplingRateHz: 30
+  batchSize: 5
+  sendSeparateAxes: 1
+  sendCombinedXY: 1
+  changeThreshold: 0.01
+  OnConnected:
+    m_PersistentCalls:
+      m_Calls: []
+  OnDisconnected:
+    m_PersistentCalls:
+      m_Calls: []
+  OnSensorRegistered:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &944130363
 GameObject:
   m_ObjectHideFlags: 0

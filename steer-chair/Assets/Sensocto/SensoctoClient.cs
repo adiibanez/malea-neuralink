@@ -238,6 +238,98 @@ namespace Sensocto
         }
 
         /// <summary>
+        /// Register as a sensor provider and return a SensorStream for sending data.
+        /// This is the preferred way to create a sensor that emits measurements.
+        /// </summary>
+        /// <param name="config">Configuration for the sensor to register.</param>
+        /// <param name="connectorId">Optional connector ID. Auto-generated if null.</param>
+        /// <param name="connectorName">Optional connector name.</param>
+        /// <returns>A SensorStream for sending measurements, or null if registration failed.</returns>
+        public async Task<SensorStream> RegisterSensorAsync(SensorConfig config, string connectorId = null, string connectorName = null)
+        {
+            if (State != ConnectionState.Connected)
+            {
+                Debug.LogWarning("[SensoctoClient] Cannot register sensor: not connected");
+                return null;
+            }
+
+            var sensorId = config.SensorId ?? Guid.NewGuid().ToString();
+
+            if (_sensors.ContainsKey(sensorId))
+            {
+                Debug.LogWarning($"[SensoctoClient] Sensor already registered: {sensorId}");
+                return null;
+            }
+
+            var topic = $"sensocto:sensor:{sensorId}";
+            var joinParams = new Dictionary<string, object>
+            {
+                ["connector_id"] = connectorId ?? Guid.NewGuid().ToString(),
+                ["connector_name"] = connectorName ?? "Unity Connector",
+                ["sensor_id"] = sensorId,
+                ["sensor_name"] = config.SensorName,
+                ["sensor_type"] = config.SensorType,
+                ["attributes"] = config.Attributes,
+                ["sampling_rate"] = config.SamplingRateHz,
+                ["batch_size"] = config.BatchSize,
+                ["bearer_token"] = _config.BearerToken ?? ""
+            };
+
+            var channel = _socket.Channel(topic, joinParams);
+
+            // Setup backpressure handling (for tracking in _sensors)
+            var backpressure = new BackpressureManager();
+            channel.On("backpressure_config", payload =>
+            {
+                if (payload is Dictionary<string, object> dict)
+                {
+                    backpressure.UpdateConfig(dict);
+                    var bpConfig = BackpressureConfig.FromDictionary(dict);
+                    OnBackpressureConfig?.Invoke(sensorId, bpConfig);
+                }
+            });
+
+            // Setup presence
+            var presence = new PhoenixPresence(channel);
+            presence.OnSync += state => OnPresenceChange?.Invoke(sensorId, state);
+
+            var reply = await channel.JoinAsync();
+            if (!reply.IsOk)
+            {
+                Debug.LogError($"[SensoctoClient] Failed to register sensor {sensorId}: {reply.Response}");
+                return null;
+            }
+
+            // Track in sensors dictionary for cleanup
+            var info = new SensorChannelInfo
+            {
+                SensorId = sensorId,
+                Channel = channel,
+                Presence = presence,
+                Backpressure = backpressure,
+                JoinParams = null
+            };
+            _sensors[sensorId] = info;
+
+            Debug.Log($"[SensoctoClient] Registered sensor: {sensorId} ({config.SensorName})");
+
+            // Return a SensorStream for the caller to use
+            return new SensorStream(channel, sensorId, config);
+        }
+
+        /// <summary>
+        /// Register as a sensor provider (non-async).
+        /// </summary>
+        public void RegisterSensor(SensorConfig config, Action<SensorStream> callback, string connectorId = null, string connectorName = null)
+        {
+            _ = Task.Run(async () =>
+            {
+                var result = await RegisterSensorAsync(config, connectorId, connectorName);
+                callback?.Invoke(result);
+            });
+        }
+
+        /// <summary>
         /// Leave a sensor channel.
         /// </summary>
         public async Task LeaveSensorAsync(string sensorId)
