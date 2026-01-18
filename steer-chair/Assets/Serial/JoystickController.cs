@@ -20,14 +20,20 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
     [Header("Serial Settings")]
     [SerializeField] private string serialPort = "/dev/cu.usbmodem21101";
     [SerializeField] private int baudRate = 115200;
-    
+
     [Header("Timing")]
     [SerializeField] private float updateInterval = 0.12f;
     [SerializeField] private float idleTimeout = 0.3f;
-    
+
     [Header("Debug")]
     [SerializeField] private bool logCommands = true;
     [SerializeField] private bool logInput = false;
+
+    /// <summary>
+    /// Event fired when serial connection state changes.
+    /// Parameter is true when connected, false when disconnected.
+    /// </summary>
+    public event Action<bool> OnSerialConnectionChanged;
     
     // Constants
     private const int NEUTRAL = 31;
@@ -65,6 +71,10 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
     private int consecutiveErrors = 0;
     private const int ERRORS_BEFORE_RECONNECT = 3;
 
+    // Connection state tracking for events
+    private bool _lastKnownConnectionState = false;
+    private readonly object _connectionStateLock = new object();
+
     // Thread-safe input buffer
     private readonly object inputLock = new object();
 
@@ -95,6 +105,11 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
         }
     }
 #endif
+
+    /// <summary>
+    /// Returns true if serial port is currently connected and open.
+    /// </summary>
+    public bool IsConnected => IsSerialConnected();
 
     void Awake()
     {
@@ -171,7 +186,17 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
 
         Debug.Log("[JoystickController] Start: SendLoop thread started");
     }
-    
+
+    void Update()
+    {
+        // Process pending connection state notifications on main thread
+        if (_pendingConnectionNotification)
+        {
+            _pendingConnectionNotification = false;
+            NotifyConnectionStateIfChanged(_pendingConnectionState);
+        }
+    }
+
     /// <summary>
     /// Attempts to establish serial connection. Thread-safe.
     /// </summary>
@@ -218,6 +243,7 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
                 reconnectAttempts = 0;
                 consecutiveErrors = 0;
                 Debug.Log($"[JoystickController] Serial connected on {serialPort}");
+                QueueConnectionNotification(true);
                 return true;
             }
             catch (Exception e)
@@ -229,6 +255,7 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
                     Debug.LogWarning($"[JoystickController] Inner exception: {e.InnerException.GetType().Name}: {e.InnerException.Message}");
                 }
                 Debug.LogWarning($"[JoystickController] Stack trace: {e.StackTrace}");
+                QueueConnectionNotification(false);
                 return false;
             }
         }
@@ -271,6 +298,41 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
     }
 
     /// <summary>
+    /// Notifies listeners if connection state has changed.
+    /// Must be called from main thread for Unity event safety.
+    /// </summary>
+    private void NotifyConnectionStateIfChanged(bool currentState)
+    {
+        bool shouldNotify = false;
+        lock (_connectionStateLock)
+        {
+            if (_lastKnownConnectionState != currentState)
+            {
+                _lastKnownConnectionState = currentState;
+                shouldNotify = true;
+            }
+        }
+
+        if (shouldNotify)
+        {
+            Debug.Log($"[JoystickController] Connection state changed: {(currentState ? "Connected" : "Disconnected")}");
+            OnSerialConnectionChanged?.Invoke(currentState);
+        }
+    }
+
+    /// <summary>
+    /// Queues a connection state notification to be processed on the main thread.
+    /// </summary>
+    private volatile bool _pendingConnectionNotification = false;
+    private volatile bool _pendingConnectionState = false;
+
+    private void QueueConnectionNotification(bool connected)
+    {
+        _pendingConnectionState = connected;
+        _pendingConnectionNotification = true;
+    }
+
+    /// <summary>
     /// Safely writes to serial port with error tracking.
     /// </summary>
     /// <returns>True if write succeeded, false otherwise.</returns>
@@ -310,6 +372,7 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
                 catch { }
                 ser = null;
 
+                QueueConnectionNotification(false);
                 return false;
             }
         }

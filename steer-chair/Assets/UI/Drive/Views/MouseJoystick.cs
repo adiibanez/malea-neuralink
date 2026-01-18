@@ -2,9 +2,11 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 
-[UxmlElement]
-public partial class MouseJoystick : VisualElement
+namespace SteerChair.UI
 {
+    [UxmlElement]
+    public partial class MouseJoystick : VisualElement
+    {
     // Vector to skew axis of the joystick, defaults to 
     // X: 0.5f left and right weightet the same
     // Y: 0.6f front weighted 60% vs 40% back
@@ -148,4 +150,5 @@ public partial class MouseJoystick : VisualElement
         painter.ClosePath();
         painter.Fill();
     }
+}
 }

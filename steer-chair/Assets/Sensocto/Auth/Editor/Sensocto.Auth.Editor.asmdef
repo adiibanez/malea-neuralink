@@ -2,7 +2,8 @@
     "name": "Sensocto.Auth.Editor",
     "rootNamespace": "Sensocto.Auth.Editor",
     "references": [
-        "Sensocto"
+        "Sensocto",
+        "Sensocto.SDK"
     ],
     "includePlatforms": [
         "Editor"

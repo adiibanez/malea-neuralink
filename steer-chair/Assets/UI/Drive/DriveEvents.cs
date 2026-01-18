@@ -6,6 +6,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 using System;
 using Sensocto;
+using SteerChair.UI;
 
 #nullable enable
 

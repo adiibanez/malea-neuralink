@@ -1,8 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Events;
-using Sensocto.Models;
-using Sensocto.Auth;
+using Sensocto.SDK;
 
 namespace Sensocto
 {
@@ -41,6 +42,7 @@ namespace Sensocto
         public UnityEvent<string> OnSensorRegistered;
 
         private SensoctoClient _client;
+        private SensoctoConfig _config;
         private SensorStream _stream;
         private Vector2 _lastSentPosition;
         private bool _isRegistered;
@@ -58,7 +60,7 @@ namespace Sensocto
         /// <summary>
         /// Current connection state.
         /// </summary>
-        public ConnectionState ConnectionState => _client?.State ?? ConnectionState.Disconnected;
+        public ConnectionState ConnectionState => _client?.ConnectionState ?? ConnectionState.Disconnected;
 
         private void Awake()
         {
@@ -85,14 +87,27 @@ namespace Sensocto
             }
         }
 
+        private void Update()
+        {
+            // Flush stream if active
+            if (_stream != null && _stream.IsActive)
+            {
+                _ = _stream.FlushBatchAsync();
+            }
+        }
+
         private void InitializeClient()
         {
             // Determine which token and server to use
             var effectiveToken = GetEffectiveToken();
             var effectiveServer = GetEffectiveServerUrl();
 
-            _client = new SensoctoClient(effectiveServer, effectiveToken);
-            _client.OnConnectionStateChange += HandleConnectionStateChange;
+            _config = SensoctoConfig.CreateRuntime(effectiveServer, "Unity DriveChair");
+            _config.BearerToken = effectiveToken;
+            _config.AutoJoinConnector = false;
+
+            _client = new SensoctoClient(_config);
+            _client.OnConnectionStateChanged += HandleConnectionStateChange;
             _client.OnError += HandleError;
 
             Debug.Log($"[JoystickSensorEmitter] Initialized with server: {effectiveServer}, token: {(string.IsNullOrEmpty(effectiveToken) ? "NONE" : "SET")}");
@@ -159,12 +174,20 @@ namespace Sensocto
         {
             if (_client == null) return;
 
-            Debug.Log($"[JoystickSensorEmitter] Connecting to {serverUrl}...");
-            await _client.ConnectAsync();
+            Debug.Log($"[JoystickSensorEmitter] Connecting to {GetEffectiveServerUrl()}...");
 
-            if (_client.State == ConnectionState.Connected)
+            try
             {
-                await RegisterSensor();
+                var connected = await _client.ConnectAsync(GetEffectiveToken());
+
+                if (connected)
+                {
+                    await RegisterSensor();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[JoystickSensorEmitter] Connection failed: {ex.Message}");
             }
         }
 
@@ -173,19 +196,30 @@ namespace Sensocto
         /// </summary>
         public async void Disconnect()
         {
-            if (_stream != null)
+            try
             {
-                await _stream.CloseAsync();
-                _stream = null;
-            }
+                if (_stream != null)
+                {
+                    await _stream.CloseAsync();
+                    _stream = null;
+                }
 
-            _isRegistered = false;
-            _client?.Disconnect();
+                _isRegistered = false;
+
+                if (_client != null)
+                {
+                    await _client.DisconnectAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[JoystickSensorEmitter] Error during disconnect: {ex.Message}");
+            }
         }
 
-        private async System.Threading.Tasks.Task RegisterSensor()
+        private async Task RegisterSensor()
         {
-            var attributes = new System.Collections.Generic.List<string>();
+            var attributes = new List<string>();
 
             if (sendSeparateAxes)
             {
@@ -198,26 +232,33 @@ namespace Sensocto
                 attributes.Add("xy");
             }
 
-            var config = new SensorConfig
+            var sensorConfig = new SensorConfig
             {
                 SensorName = sensorName,
                 SensorType = sensorType,
-                Attributes = attributes.ToArray(),
+                Attributes = attributes,
                 SamplingRateHz = samplingRateHz,
                 BatchSize = batchSize
             };
 
-            _stream = await _client.RegisterSensorAsync(config, connectorName: "Unity DriveChair");
+            try
+            {
+                _stream = await _client.RegisterSensorAsync(sensorConfig);
 
-            if (_stream != null)
-            {
-                _isRegistered = true;
-                Debug.Log($"[JoystickSensorEmitter] Registered as sensor: {_stream.SensorId}");
-                OnSensorRegistered?.Invoke(_stream.SensorId);
+                if (_stream != null)
+                {
+                    _isRegistered = true;
+                    Debug.Log($"[JoystickSensorEmitter] Registered as sensor: {_stream.SensorId}");
+                    OnSensorRegistered?.Invoke(_stream.SensorId);
+                }
+                else
+                {
+                    Debug.LogError("[JoystickSensorEmitter] Failed to register sensor");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                Debug.LogError("[JoystickSensorEmitter] Failed to register sensor");
+                Debug.LogError($"[JoystickSensorEmitter] Failed to register sensor: {ex.Message}");
             }
         }
 
@@ -236,9 +277,9 @@ namespace Sensocto
             }
         }
 
-        private void HandleError(string error)
+        private void HandleError(SensoctoError error)
         {
-            Debug.LogError($"[JoystickSensorEmitter] Error: {error}");
+            Debug.LogError($"[JoystickSensorEmitter] Error: {error.Message}");
         }
 
         #region IMoveReceiver Implementation
@@ -267,7 +308,7 @@ namespace Sensocto
             // Send combined XY measurement
             if (sendCombinedXY)
             {
-                _stream.AddToBatch("xy", new System.Collections.Generic.Dictionary<string, object>
+                _stream.AddToBatch("xy", new Dictionary<string, object>
                 {
                     ["x"] = direction.x,
                     ["y"] = direction.y
@@ -290,9 +331,12 @@ namespace Sensocto
         /// <summary>
         /// Force flush any buffered measurements.
         /// </summary>
-        public void Flush()
+        public async void Flush()
         {
-            _stream?.Flush();
+            if (_stream != null)
+            {
+                await _stream.FlushBatchAsync();
+            }
         }
 
         #endregion

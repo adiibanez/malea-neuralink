@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using Sensocto.Models;
+using Sensocto.SDK;
 
 namespace Sensocto
 {

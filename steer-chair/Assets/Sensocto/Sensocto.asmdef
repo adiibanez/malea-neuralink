@@ -1,7 +1,7 @@
 {
     "name": "Sensocto",
     "rootNamespace": "Sensocto",
-    "references": [],
+    "references": ["Sensocto.SDK"],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

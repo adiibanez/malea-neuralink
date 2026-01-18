@@ -1,9 +1,14 @@
 using UnityEngine;
+using Sensocto.SDK;
 
 namespace Sensocto
 {
-    public interface IMoveReceiver
+    /// <summary>
+    /// Local interface extending SDK's IMoveReceiver for backward compatibility.
+    /// Components can implement either this interface or Sensocto.SDK.IMoveReceiver.
+    /// </summary>
+    public interface IMoveReceiver : Sensocto.SDK.IMoveReceiver
     {
-        void Move(Vector2 direction);
+        // Inherits Move(Vector2 direction) from SDK.IMoveReceiver
     }
 }

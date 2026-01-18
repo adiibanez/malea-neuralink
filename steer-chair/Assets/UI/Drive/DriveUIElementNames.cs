@@ -24,4 +24,9 @@ public static class DriveUIElementNames
     public const string HornBtn = "HornBtn";
     public const string LightsBtn = "LightsBtn";
     public const string HazardBtn = "HazardBtn";
+
+    // Serial status
+    public const string SerialStatusContainer = "SerialStatusContainer";
+    public const string SerialStatusIndicator = "SerialStatusIndicator";
+    public const string SerialStatusLabel = "SerialStatusLabel";
 }

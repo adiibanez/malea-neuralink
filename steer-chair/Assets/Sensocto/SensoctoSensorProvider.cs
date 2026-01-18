@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Events;
-using Sensocto.Models;
+using Sensocto.SDK;
 
 namespace Sensocto
 {
@@ -19,7 +20,7 @@ namespace Sensocto
     public class MeasurementEvent : UnityEvent<string, object> { }
 
     /// <summary>
-    /// Unity MonoBehaviour for integrating Sensocto with the wheelchair control system.
+    /// Unity MonoBehaviour for integrating Sensocto SDK with the wheelchair control system.
     /// Implements IMoveReceiver for receiving movement commands from external sensors.
     /// </summary>
     public class SensoctoSensorProvider : MonoBehaviour, IMoveReceiver
@@ -33,16 +34,12 @@ namespace Sensocto
         [Header("Inbound Sensor (receives external input)")]
         [SerializeField] private bool enableInbound = true;
         [SerializeField] private string inboundSensorId = "";
-        [SerializeField] private string inboundConnectorId = "";
-        [SerializeField] private string inboundSensorName = "External Sensor";
-        [SerializeField] private string[] inboundAttributes = { "direction", "speed" };
         [SerializeField] private string directionAttribute = "direction";
         [SerializeField] private string speedAttribute = "speed";
 
         [Header("Outbound Telemetry (sends wheelchair state)")]
         [SerializeField] private bool enableOutbound = true;
         [SerializeField] private string outboundSensorId = "";
-        [SerializeField] private string outboundConnectorId = "";
         [SerializeField] private string outboundSensorName = "Unity Wheelchair";
         [SerializeField] private string[] outboundAttributes = { "position", "velocity", "state" };
 
@@ -57,6 +54,9 @@ namespace Sensocto
         public UnityEvent OnDisconnected;
 
         private SensoctoClient _client;
+        private SensoctoConfig _config;
+        private SensorSubscription _inboundSubscription;
+        private SensorStream _outboundStream;
         private Vector2 _currentMovement;
         private Vector2 _lastSentMovement;
         private readonly object _movementLock = new object();
@@ -64,12 +64,12 @@ namespace Sensocto
         /// <summary>
         /// Current connection state.
         /// </summary>
-        public ConnectionState ConnectionState => _client?.State ?? ConnectionState.Disconnected;
+        public ConnectionState ConnectionState => _client?.ConnectionState ?? ConnectionState.Disconnected;
 
         /// <summary>
         /// Whether currently connected.
         /// </summary>
-        public bool IsConnected => ConnectionState == ConnectionState.Connected;
+        public bool IsConnected => _client?.IsConnected ?? false;
 
         /// <summary>
         /// Current movement input from sensors.
@@ -87,12 +87,15 @@ namespace Sensocto
 
         private void Awake()
         {
-            _client = new SensoctoClient(serverUrl, bearerToken);
+            _config = SensoctoConfig.CreateRuntime(serverUrl, "Unity Wheelchair");
+            _config.BearerToken = bearerToken;
+            _config.AutoReconnect = autoReconnect;
+            _config.AutoJoinConnector = false;
 
-            _client.OnConnectionStateChange += HandleConnectionStateChange;
-            _client.OnMeasurement += HandleMeasurement;
-            _client.OnBackpressureConfig += HandleBackpressureConfig;
+            _client = new SensoctoClient(_config);
+            _client.OnConnectionStateChanged += HandleConnectionStateChange;
             _client.OnError += HandleError;
+            _client.OnReconnected += HandleReconnected;
         }
 
         private void Start()
@@ -105,13 +108,10 @@ namespace Sensocto
 
         private void Update()
         {
-            if (_client == null || !IsConnected)
-                return;
-
-            // Flush buffered measurements for outbound telemetry
-            if (enableOutbound && !string.IsNullOrEmpty(outboundSensorId))
+            // Flush outbound stream if active
+            if (_outboundStream != null && _outboundStream.IsActive)
             {
-                _client.FlushBufferedMeasurements(outboundSensorId);
+                _ = _outboundStream.FlushBatchAsync();
             }
         }
 
@@ -130,67 +130,91 @@ namespace Sensocto
                 return;
 
             Debug.Log($"[SensoctoSensorProvider] Connecting to {serverUrl}...");
-            await _client.ConnectAsync();
 
-            if (_client.State == ConnectionState.Connected)
+            try
             {
-                await JoinChannels();
+                var connected = await _client.ConnectAsync(bearerToken);
+
+                if (connected)
+                {
+                    await SetupChannels();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[SensoctoSensorProvider] Connection failed: {ex.Message}");
             }
         }
 
         /// <summary>
         /// Disconnect from the server.
         /// </summary>
-        public void Disconnect()
+        public async void Disconnect()
         {
-            _client?.Disconnect();
+            try
+            {
+                if (_inboundSubscription != null)
+                {
+                    await _inboundSubscription.UnsubscribeAsync();
+                    _inboundSubscription = null;
+                }
+
+                if (_outboundStream != null)
+                {
+                    await _outboundStream.CloseAsync();
+                    _outboundStream = null;
+                }
+
+                if (_client != null)
+                {
+                    await _client.DisconnectAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[SensoctoSensorProvider] Error during disconnect: {ex.Message}");
+            }
         }
 
-        private async System.Threading.Tasks.Task JoinChannels()
+        private async Task SetupChannels()
         {
-            // Join inbound sensor channel
+            // Subscribe to inbound sensor
             if (enableInbound && !string.IsNullOrEmpty(inboundSensorId))
             {
-                var inboundParams = new SensorJoinParams
+                try
                 {
-                    SensorId = inboundSensorId,
-                    ConnectorId = inboundConnectorId,
-                    ConnectorName = "Unity Receiver",
-                    SensorName = inboundSensorName,
-                    Attributes = inboundAttributes,
-                    SensorType = "receiver",
-                    SamplingRate = 50,
-                    BatchSize = 10,
-                    BearerToken = bearerToken
-                };
-
-                var joined = await _client.JoinSensorAsync(inboundParams);
-                if (joined)
+                    _inboundSubscription = await _client.SubscribeToSensorAsync(inboundSensorId, "Unity Receiver");
+                    _inboundSubscription.OnMeasurement += HandleMeasurement;
+                    _inboundSubscription.OnBackpressureConfig += HandleBackpressureConfig;
+                    Debug.Log($"[SensoctoSensorProvider] Subscribed to inbound sensor: {inboundSensorId}");
+                }
+                catch (Exception ex)
                 {
-                    Debug.Log($"[SensoctoSensorProvider] Joined inbound sensor: {inboundSensorId}");
+                    Debug.LogError($"[SensoctoSensorProvider] Failed to subscribe to inbound sensor: {ex.Message}");
                 }
             }
 
-            // Join outbound sensor channel
+            // Register outbound sensor
             if (enableOutbound && !string.IsNullOrEmpty(outboundSensorId))
             {
-                var outboundParams = new SensorJoinParams
+                try
                 {
-                    SensorId = outboundSensorId,
-                    ConnectorId = outboundConnectorId,
-                    ConnectorName = "Unity Transmitter",
-                    SensorName = outboundSensorName,
-                    Attributes = outboundAttributes,
-                    SensorType = "controller",
-                    SamplingRate = 50,
-                    BatchSize = 10,
-                    BearerToken = bearerToken
-                };
+                    var sensorConfig = new SensorConfig
+                    {
+                        SensorId = outboundSensorId,
+                        SensorName = outboundSensorName,
+                        SensorType = "controller",
+                        Attributes = new List<string>(outboundAttributes),
+                        SamplingRateHz = 50,
+                        BatchSize = 10
+                    };
 
-                var joined = await _client.JoinSensorAsync(outboundParams);
-                if (joined)
+                    _outboundStream = await _client.RegisterSensorAsync(sensorConfig);
+                    Debug.Log($"[SensoctoSensorProvider] Registered outbound sensor: {outboundSensorId}");
+                }
+                catch (Exception ex)
                 {
-                    Debug.Log($"[SensoctoSensorProvider] Joined outbound sensor: {outboundSensorId}");
+                    Debug.LogError($"[SensoctoSensorProvider] Failed to register outbound sensor: {ex.Message}");
                 }
             }
         }
@@ -199,6 +223,7 @@ namespace Sensocto
         {
             Debug.Log($"[SensoctoSensorProvider] Connection state: {state}");
 
+            // Invoke events on main thread
             if (state == ConnectionState.Connected)
             {
                 OnConnected?.Invoke();
@@ -209,12 +234,14 @@ namespace Sensocto
             }
         }
 
-        private void HandleMeasurement(string sensorId, Measurement measurement)
+        private async void HandleReconnected()
         {
-            // Only process measurements from inbound sensor
-            if (sensorId != inboundSensorId)
-                return;
+            Debug.Log("[SensoctoSensorProvider] Reconnected, re-establishing channels...");
+            await SetupChannels();
+        }
 
+        private void HandleMeasurement(Measurement measurement)
+        {
             OnMeasurementReceived?.Invoke(measurement.AttributeId, measurement.Payload);
 
             // Parse direction/speed into movement vector
@@ -246,7 +273,6 @@ namespace Sensocto
                 _currentMovement.y = Mathf.Clamp(_currentMovement.y, -1f, 1f);
             }
 
-            // Invoke on main thread
             OnMovementReceived?.Invoke(_currentMovement);
         }
 
@@ -273,15 +299,15 @@ namespace Sensocto
             return 0;
         }
 
-        private void HandleBackpressureConfig(string sensorId, BackpressureConfig config)
+        private void HandleBackpressureConfig(BackpressureConfig config)
         {
-            Debug.Log($"[SensoctoSensorProvider] Backpressure for {sensorId}: {config.AttentionLevel}, " +
-                      $"window: {config.RecommendedBatchWindowMs}ms, batch: {config.RecommendedBatchSize}");
+            Debug.Log($"[SensoctoSensorProvider] Backpressure: {config.AttentionLevel}, " +
+                      $"window: {config.RecommendedBatchWindow}ms, batch: {config.RecommendedBatchSize}");
         }
 
-        private void HandleError(string error)
+        private void HandleError(SensoctoError error)
         {
-            Debug.LogError($"[SensoctoSensorProvider] Error: {error}");
+            Debug.LogError($"[SensoctoSensorProvider] Error: {error.Message}");
         }
 
         #region IMoveReceiver Implementation
@@ -292,7 +318,7 @@ namespace Sensocto
         /// </summary>
         public void Move(Vector2 direction)
         {
-            if (!enableOutbound || string.IsNullOrEmpty(outboundSensorId) || !IsConnected)
+            if (!enableOutbound || _outboundStream == null || !_outboundStream.IsActive)
                 return;
 
             // Only send if movement changed significantly
@@ -301,8 +327,8 @@ namespace Sensocto
 
             _lastSentMovement = direction;
 
-            // Buffer measurements for batch sending
-            _client.BufferMeasurement(outboundSensorId, "velocity", new Dictionary<string, object>
+            // Add to batch for sending
+            _outboundStream.AddToBatch("velocity", new Dictionary<string, object>
             {
                 ["x"] = direction.x,
                 ["y"] = direction.y
@@ -318,10 +344,10 @@ namespace Sensocto
         /// </summary>
         public void SendTelemetry(string attributeId, object value)
         {
-            if (!enableOutbound || string.IsNullOrEmpty(outboundSensorId) || !IsConnected)
+            if (!enableOutbound || _outboundStream == null || !_outboundStream.IsActive)
                 return;
 
-            _client.BufferMeasurement(outboundSensorId, attributeId, value);
+            _outboundStream.AddToBatch(attributeId, value);
         }
 
         /// <summary>
@@ -346,19 +372,11 @@ namespace Sensocto
         }
 
         /// <summary>
-        /// Get the backpressure manager for the outbound sensor.
-        /// </summary>
-        public BackpressureManager GetOutboundBackpressure()
-        {
-            return _client?.GetBackpressureManager(outboundSensorId);
-        }
-
-        /// <summary>
         /// Get the backpressure manager for the inbound sensor.
         /// </summary>
         public BackpressureManager GetInboundBackpressure()
         {
-            return _client?.GetBackpressureManager(inboundSensorId);
+            return _inboundSubscription?.Backpressure;
         }
 
         #endregion

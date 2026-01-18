@@ -6,6 +6,8 @@ using UnityEditor.Callbacks;
 using UnityEngine;
 using System.IO;
 
+using Sensocto.SDK;
+
 namespace Sensocto.Auth.Editor
 {
     /// <summary>
@@ -151,7 +153,7 @@ namespace Sensocto.Auth.Editor
             if (!string.IsNullOrEmpty(testUrl))
             {
                 // Simulate deep link activation
-                var data = DeepLinkHandler.ParseDeepLink(testUrl);
+                var data = Sensocto.SDK.DeepLinkHandler.ParseDeepLink(testUrl);
                 if (data != null && !string.IsNullOrEmpty(data.Token))
                 {
                     AuthManager.SetCredentials(data.Token, data.UserName, data.UserId, data.ServerUrl);

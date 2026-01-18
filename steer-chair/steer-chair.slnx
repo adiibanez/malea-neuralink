@@ -1,5 +1,6 @@
 ﻿<Solution>
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Sensocto.SDK.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="Sensocto.csproj" />
   <Project Path="Sensocto.Auth.Editor.csproj" />

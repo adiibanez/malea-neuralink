@@ -1,14 +1,17 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 
-public class JoystickMoveEvent : EventBase<JoystickMoveEvent>
+namespace SteerChair.UI
 {
-    public Vector2 Direction { get; private set; }
-
-    public static JoystickMoveEvent Get(Vector2 direction)
+    public class JoystickMoveEvent : EventBase<JoystickMoveEvent>
     {
-        var evt = GetPooled();
-        evt.Direction = direction;
-        return evt;
+        public Vector2 Direction { get; private set; }
+
+        public static JoystickMoveEvent Get(Vector2 direction)
+        {
+            var evt = GetPooled();
+            evt.Direction = direction;
+            return evt;
+        }
     }
 }
