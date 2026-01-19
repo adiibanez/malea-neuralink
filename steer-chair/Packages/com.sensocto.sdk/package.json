@@ -1,0 +1,37 @@
+{
+  "name": "com.sensocto.sdk",
+  "version": "1.0.0",
+  "displayName": "Sensocto SDK",
+  "description": "Unity SDK for connecting to Sensocto sensor platform. Supports real-time sensor data streaming, WebRTC video calls, and room management.",
+  "unity": "2020.3",
+  "unityRelease": "0f1",
+  "documentationUrl": "https://github.com/sensocto/unity-sdk",
+  "changelogUrl": "https://github.com/sensocto/unity-sdk/blob/main/CHANGELOG.md",
+  "licensesUrl": "https://github.com/sensocto/unity-sdk/blob/main/LICENSE",
+  "keywords": [
+    "sensocto",
+    "sensors",
+    "iot",
+    "websocket",
+    "phoenix",
+    "realtime",
+    "webrtc"
+  ],
+  "author": {
+    "name": "Sensocto",
+    "email": "support@sensocto.com",
+    "url": "https://sensocto.com"
+  },
+  "samples": [
+    {
+      "displayName": "Basic Sensor Example",
+      "description": "Shows how to connect and stream sensor data",
+      "path": "Samples~/BasicSensor"
+    },
+    {
+      "displayName": "Video Call Example",
+      "description": "Shows how to join video/voice calls in rooms",
+      "path": "Samples~/VideoCall"
+    }
+  ]
+}

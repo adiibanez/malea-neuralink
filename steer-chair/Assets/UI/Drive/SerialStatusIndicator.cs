@@ -1,13 +1,17 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
 /// <summary>
 /// Displays serial connection status in the UI.
 /// Subscribes to JoystickController's connection events for real-time updates.
+/// Only active in DriveChair scene.
 /// </summary>
 [RequireComponent(typeof(UIDocument))]
 public class SerialStatusIndicator : MonoBehaviour
 {
+    private const string DRIVE_CHAIR_SCENE = "DriveChair";
+
     [Header("UI Settings")]
     [SerializeField] private Color connectedColor = new Color(0.2f, 0.8f, 0.2f); // Green
     [SerializeField] private Color disconnectedColor = new Color(0.8f, 0.2f, 0.2f); // Red
@@ -22,12 +26,25 @@ public class SerialStatusIndicator : MonoBehaviour
 
     void OnEnable()
     {
+        // Only initialize in DriveChair scene
+        if (SceneManager.GetActiveScene().name != DRIVE_CHAIR_SCENE)
+        {
+            enabled = false;
+            return;
+        }
+
         StartCoroutine(InitializeDelayed());
     }
 
     private System.Collections.IEnumerator InitializeDelayed()
     {
         yield return null;
+
+        // Double-check we're in the right scene
+        if (SceneManager.GetActiveScene().name != DRIVE_CHAIR_SCENE)
+        {
+            yield break;
+        }
 
         _root = GetComponent<UIDocument>().rootVisualElement;
         if (_root == null) yield break;

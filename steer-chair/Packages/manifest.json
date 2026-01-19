@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "com.sensocto.sdk": "file:../../../../../2024_sensor-platform/sensocto/clients/unity/SensoctoSDK",
+    "com.sensocto.sdk": "file:com.sensocto.sdk",
     "com.unity.ai.navigation": "2.0.9",
     "com.unity.collab-proxy": "2.10.2",
     "com.unity.ide.rider": "3.0.38",

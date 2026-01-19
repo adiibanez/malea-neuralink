@@ -22,6 +22,13 @@
                     <ui:Label name="SerialStatusLabel" text="Disconnected" style="color: rgb(0, 0, 0); font-size: 12px;"/>
                 </ui:VisualElement>
             </ui:VisualElement>
+            <ui:VisualElement name="AuthStatusContainer" style="margin-top: 10px; background-color: rgba(255, 255, 255, 0.9); border-radius: 8px; padding: 8px;">
+                <ui:Label name="AuthStatusHeader" text="Account" style="color: rgb(0, 0, 0); -unity-font-style: bold; margin-bottom: 4px;"/>
+                <ui:VisualElement name="AuthStatusRow" style="flex-direction: row; align-items: center;">
+                    <ui:VisualElement name="AuthStatusIndicator" style="width: 12px; height: 12px; border-radius: 6px; margin-right: 8px; background-color: rgb(128, 128, 128);"/>
+                    <ui:Label name="AuthStatusLabel" text="Offline" style="color: rgb(0, 0, 0); font-size: 12px;"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="Center" picking-mode="Ignore" style="align-content: flex-end; align-self: auto; justify-content: center; margin-top: 8%; flex-grow: 1; margin-bottom: 2%;">
             <ui:VisualElement picking-mode="Ignore" name="DriveOperations" style="flex-grow: 1;">

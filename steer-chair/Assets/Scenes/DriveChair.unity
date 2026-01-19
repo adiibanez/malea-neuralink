@@ -225,6 +225,7 @@ GameObject:
   - component: {fileID: 734146703}
   - component: {fileID: 734146704}
   - component: {fileID: 734146705}
+  - component: {fileID: 734146706}
   m_Layer: 0
   m_Name: Drive_UIDocument
   m_TagString: Untagged
@@ -246,6 +247,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DriveEvents
   inputSource: 2
   sensoctoProvider: {fileID: 0}
+  macroButtonsUI: {fileID: 0}
+  rightMenuButtons: {fileID: 0}
+  modeController: {fileID: 0}
+  wheelchairState: {fileID: 0}
 --- !u!114 &734146701
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -296,6 +301,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7bd97bf24137452dae8ddbcc16f6d80, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WebcamTexDemo
+  preferredCameraName: See3CAM_CU31
+  requestedWidth: 1280
+  requestedHeight: 720
+  requestedFPS: 30
+  logCameraChanges: 1
 --- !u!114 &734146704
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -324,11 +334,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5353a23779273419ebe14e2ae0888e57, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Sensocto::Sensocto.JoystickSensorEmitter
   serverUrl: wss://sensocto.fly.dev/socket
-  bearerToken:
+  bearerToken: 
   connectOnStart: 1
+  useAuthManager: 1
   sensorName: DriveChair Joystick
   sensorType: joystick
   samplingRateHz: 30
@@ -345,6 +356,34 @@ MonoBehaviour:
   OnSensorRegistered:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &734146706
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 734146699}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa76bb9aa626045b99b0aaeaec022d3f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Sensocto.SDK::Sensocto.SDK.SerialConnectionIndicator
+  connectionMonitor: {fileID: 0}
+  statusImage: {fileID: 0}
+  statusText: {fileID: 0}
+  portText: {fileID: 0}
+  connectedColor: {r: 0.2, g: 0.8, b: 0.2, a: 1}
+  disconnectedColor: {r: 0.8, g: 0.2, b: 0.2, a: 1}
+  connectingColor: {r: 0.8, g: 0.8, b: 0.2, a: 1}
+  reconnectingColor: {r: 0.8, g: 0.5, b: 0.2, a: 1}
+  errorColor: {r: 0.5, g: 0, b: 0, a: 1}
+  blinkOnReconnect: 1
+  blinkInterval: 0.5
+  connectedFormat: Connected
+  disconnectedFormat: Disconnected
+  connectingFormat: Connecting...
+  reconnectingFormat: Reconnecting ({0}/{1})
+  errorFormat: Error
 --- !u!1 &944130363
 GameObject:
   m_ObjectHideFlags: 0

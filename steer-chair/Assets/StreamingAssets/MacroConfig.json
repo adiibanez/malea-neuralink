@@ -34,12 +34,6 @@
     }
   ],
   "actions": [
-    {
-      "id": "drive_mode",
-      "label": "Drive Mode",
-      "macro": "S31D31R8",
-      "color": "#4CAF50"
-    }
   ],
   "settings": {
     "defaultRobot": 8,

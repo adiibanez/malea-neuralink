@@ -125,6 +125,12 @@ public class RightMenuButtons : MonoBehaviour
             _hazardActive = !_hazardActive;
             HandleToggleButton(buttonName, _hazardActive, hazardActiveColor);
         }
+        // Handle Profile button - open auth UI
+        else if (buttonName == "ProfileBtn")
+        {
+            HandleMomentaryButton(buttonName);
+            AuthUI.ShowModal();
+        }
         // Handle momentary buttons
         else if (System.Array.Exists(MomentaryButtons, b => b == buttonName))
         {

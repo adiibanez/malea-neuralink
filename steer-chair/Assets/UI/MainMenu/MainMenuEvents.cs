@@ -24,6 +24,9 @@ public class MainMenuEvents : MonoBehaviour
                 case "StartSimulator":
                 b.RegisterCallback<ClickEvent>(OnSimulatorButtonClicked);
                 break;
+                case "AccountBtn":
+                b.RegisterCallback<ClickEvent>(OnAccountButtonClicked);
+                break;
                 case "Quit":
                 b.RegisterCallback<ClickEvent>(OnQuitButtonClicked);
                 break;
@@ -42,6 +45,9 @@ public class MainMenuEvents : MonoBehaviour
                 break;
                 case "StartSimulator":
                 b.UnregisterCallback<ClickEvent>(OnSimulatorButtonClicked);
+                break;
+                case "AccountBtn":
+                b.UnregisterCallback<ClickEvent>(OnAccountButtonClicked);
                 break;
                 case "Quit":
                 b.UnregisterCallback<ClickEvent>(OnQuitButtonClicked);
@@ -69,5 +75,11 @@ public class MainMenuEvents : MonoBehaviour
         Debug.Log("OnQuitButtonClicked");
 
         Application.Quit(0);
+    }
+
+    private void OnAccountButtonClicked(ClickEvent evt)
+    {
+        Debug.Log("OnAccountButtonClicked");
+        AuthUI.ShowModal();
     }
 }

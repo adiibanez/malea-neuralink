@@ -1,9 +1,9 @@
 {
   "dependencies": {
     "com.sensocto.sdk": {
-      "version": "file:../../../../../2024_sensor-platform/sensocto/clients/unity/SensoctoSDK",
+      "version": "file:com.sensocto.sdk",
       "depth": 0,
-      "source": "local",
+      "source": "embedded",
       "dependencies": {}
     },
     "com.unity.ai.navigation": {

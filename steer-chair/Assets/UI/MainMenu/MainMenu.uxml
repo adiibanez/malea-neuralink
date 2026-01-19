@@ -5,6 +5,7 @@
             <ui:Label text="App Name" name="MainMenuLabel" class="header"/>
             <ui:Button text="Drive Chair" name="StartChair" class="button mb-1"/>
             <ui:Button text="Simulator" name="StartSimulator" class="button mb-1"/>
+            <ui:Button text="Account" name="AccountBtn" class="button mb-1"/>
             <ui:Button text="Quit" name="Quit" class="button"/>
         </ui:VisualElement>
     </ui:VisualElement>

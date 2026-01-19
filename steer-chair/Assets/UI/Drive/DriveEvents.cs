@@ -53,6 +53,10 @@ public class DriveEvents : MonoBehaviour
     [Header("Right Menu")]
     [SerializeField] private RightMenuButtons? rightMenuButtons;
 
+    [Header("Mode Control")]
+    [SerializeField] private ModeController? modeController;
+    [SerializeField] private WheelchairState? wheelchairState;
+
     private Dictionary<string, Button> _fullButtonList;
     private List<Button> _driveOperationButtons;
     private HoverActivateButton _stopBtn;
@@ -97,6 +101,46 @@ public class DriveEvents : MonoBehaviour
         {
             rightMenuButtons = gameObject.AddComponent<RightMenuButtons>();
             Debug.Log("[DriveEvents] Created RightMenuButtons automatically");
+        }
+
+        // Auto-find or create ModeController and WheelchairState (only in DriveChair scene)
+        bool isDriveChairScene = SceneManager.GetActiveScene().name == "DriveChair";
+
+        if (isDriveChairScene)
+        {
+            if (modeController == null)
+            {
+                modeController = FindFirstObjectByType<ModeController>();
+            }
+            if (modeController == null)
+            {
+                modeController = gameObject.AddComponent<ModeController>();
+                Debug.Log("[DriveEvents] Created ModeController automatically");
+            }
+
+            if (wheelchairState == null)
+            {
+                wheelchairState = FindFirstObjectByType<WheelchairState>();
+            }
+            if (wheelchairState == null)
+            {
+                wheelchairState = gameObject.AddComponent<WheelchairState>();
+                Debug.Log("[DriveEvents] Created WheelchairState automatically");
+            }
+
+            // Auto-find or create ModeUI
+            if (GetComponent<ModeUI>() == null)
+            {
+                gameObject.AddComponent<ModeUI>();
+                Debug.Log("[DriveEvents] Created ModeUI automatically");
+            }
+
+            // Auto-find or create ActuatorControlUI
+            if (GetComponent<ActuatorControlUI>() == null)
+            {
+                gameObject.AddComponent<ActuatorControlUI>();
+                Debug.Log("[DriveEvents] Created ActuatorControlUI automatically");
+            }
         }
 
         VisualElement root = GetComponent<UIDocument>().rootVisualElement;
@@ -240,6 +284,12 @@ public class DriveEvents : MonoBehaviour
 
     private void OnDriveStart(ClickEvent evnt)
     {
+        // Ensure we're in Drive mode on the wheelchair
+        if (wheelchairState != null && wheelchairState.CurrentMode != WheelchairState.WheelchairMode.Drive)
+        {
+            modeController?.SwitchToDriveMode();
+        }
+
         // Set Enabled State for Stop and Mouse Joystick
         _fullButtonList[DriveUIElementNames.StartBtn].SetEnabled(false);
         _fullButtonList[DriveUIElementNames.StopBtn].SetEnabled(true);
@@ -323,6 +373,13 @@ public class DriveEvents : MonoBehaviour
     private void BroadcastMovement(Vector2 direction)
     {
         _lastStateChangedAt = Time.time;
+
+        // Track movement commands for state confidence
+        // Only count significant movements to avoid noise
+        if (direction.magnitude > 0.1f)
+        {
+            wheelchairState?.IncrementCommandCount();
+        }
 
         foreach(var t in _joystickTargets)
         {
