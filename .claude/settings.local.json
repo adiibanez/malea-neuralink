@@ -26,7 +26,10 @@
       "Bash(else echo \"SDK path not found: $SDK_PATH\")",
       "Bash(fi)",
       "Bash(git log:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)"
     ]
   }
 }

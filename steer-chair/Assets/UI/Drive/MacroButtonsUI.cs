@@ -6,10 +6,9 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
 /// <summary>
-/// Manages the dynamic creation of actuator controls in the Drive UI.
+/// Manages the dynamic creation of macro buttons in the Drive UI.
 /// Creates rows with labels and +/- buttons for each actuator, plus action buttons.
 /// Auto-finds or creates MacroController if not assigned.
-/// Now integrates with ModeController - hides actuator buttons when mode system is active.
 /// Only active in DriveChair scene.
 /// </summary>
 [RequireComponent(typeof(UIDocument))]
@@ -19,14 +18,9 @@ public class MacroButtonsUI : MonoBehaviour
 
     [Header("References")]
     [SerializeField] private MacroController macroController;
-    [SerializeField] private WheelchairState wheelchairState;
 
     [Header("UI Settings")]
     [SerializeField] private string containerName = "MacroButtonsContainer";
-
-    [Header("Mode Integration")]
-    [Tooltip("When true, hides legacy actuator buttons since ModeUI handles them")]
-    [SerializeField] private bool useModeBasedActuators = true;
 
     private VisualElement _root;
     private VisualElement _container;
@@ -130,66 +124,38 @@ public class MacroButtonsUI : MonoBehaviour
         var actuators = macroController.GetActuators();
         var actions = macroController.GetActions();
 
-        // When using mode-based actuators, skip the legacy actuator buttons
-        // The ModeUI and ActuatorControlUI handle actuator selection and control
-        bool showLegacyActuators = !useModeBasedActuators;
-
-        if (showLegacyActuators)
+        if ((actuators == null || actuators.Length == 0) && (actions == null || actions.Length == 0))
         {
-            if ((actuators == null || actuators.Length == 0) && (actions == null || actions.Length == 0))
-            {
-                Debug.LogWarning("[MacroButtonsUI] No actuators or actions configured");
-                AddErrorLabel("No config found");
-                return;
-            }
-
-            // Create actuator rows (legacy mode)
-            foreach (var actuator in actuators)
-            {
-                CreateActuatorRow(actuator);
-            }
-
-            // Add separator if we have both actuators and actions
-            if (actuators.Length > 0 && actions.Length > 0)
-            {
-                var separator = new VisualElement();
-                separator.style.height = 10;
-                separator.style.marginTop = 5;
-                separator.style.marginBottom = 5;
-                separator.style.borderBottomWidth = 1;
-                separator.style.borderBottomColor = new StyleColor(new Color(0, 0, 0, 0.2f));
-                _container.Add(separator);
-            }
-        }
-        else
-        {
-            // Update header to indicate mode-based control
-            var header = _container.Q<Label>("HeaderLabel");
-            if (header != null)
-            {
-                header.text = "Quick Actions";
-            }
-
-            // Hide the container if no actions and using mode-based actuators
-            if (actions == null || actions.Length == 0)
-            {
-                _container.style.display = DisplayStyle.None;
-                return;
-            }
-            else
-            {
-                _container.style.display = DisplayStyle.Flex;
-            }
+            Debug.LogWarning("[MacroButtonsUI] No actuators or actions configured");
+            AddErrorLabel("No config found");
+            return;
         }
 
-        // Create action buttons (always shown)
+        // Create actuator rows
+        foreach (var actuator in actuators)
+        {
+            CreateActuatorRow(actuator);
+        }
+
+        // Add separator if we have both actuators and actions
+        if (actuators.Length > 0 && actions.Length > 0)
+        {
+            var separator = new VisualElement();
+            separator.style.height = 10;
+            separator.style.marginTop = 5;
+            separator.style.marginBottom = 5;
+            separator.style.borderBottomWidth = 1;
+            separator.style.borderBottomColor = new StyleColor(new Color(0, 0, 0, 0.2f));
+            _container.Add(separator);
+        }
+
+        // Create action buttons
         foreach (var action in actions)
         {
             CreateActionButton(action);
         }
 
-        int actuatorCount = showLegacyActuators ? actuators.Length : 0;
-        Debug.Log($"[MacroButtonsUI] Created UI: {actuatorCount} actuators, {actions.Length} actions (mode-based: {useModeBasedActuators})");
+        Debug.Log($"[MacroButtonsUI] Created UI: {actuators.Length} actuators, {actions.Length} actions");
     }
 
     /// <summary>

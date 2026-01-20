@@ -31,7 +31,7 @@ public class RightMenuButtons : MonoBehaviour
     private bool _hazardActive = false;
 
     private static readonly string[] ToggleButtons = { "LightsBtn", "HazardBtn" };
-    private static readonly string[] MomentaryButtons = { "PowerBtn", "ProfileBtn", "HornBtn", "FasterBtn", "SlowerBtn" };
+    private static readonly string[] MomentaryButtons = { "PowerBtn", "HornBtn", "FasterBtn", "SlowerBtn" };
 
     void OnEnable()
     {
@@ -47,7 +47,6 @@ public class RightMenuButtons : MonoBehaviour
 
         // Find and setup all right menu buttons
         SetupButton("PowerBtn");
-        SetupButton("ProfileBtn");
         SetupButton("HornBtn");
         SetupButton("LightsBtn");
         SetupButton("HazardBtn");
@@ -124,12 +123,6 @@ public class RightMenuButtons : MonoBehaviour
         {
             _hazardActive = !_hazardActive;
             HandleToggleButton(buttonName, _hazardActive, hazardActiveColor);
-        }
-        // Handle Profile button - open auth UI
-        else if (buttonName == "ProfileBtn")
-        {
-            HandleMomentaryButton(buttonName);
-            AuthUI.ShowModal();
         }
         // Handle momentary buttons
         else if (System.Array.Exists(MomentaryButtons, b => b == buttonName))

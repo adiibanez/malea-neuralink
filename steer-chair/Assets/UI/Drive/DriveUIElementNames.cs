@@ -20,7 +20,6 @@ public static class DriveUIElementNames
 
     // Right menu buttons
     public const string PowerBtn = "PowerBtn";
-    public const string ProfileBtn = "ProfileBtn";
     public const string HornBtn = "HornBtn";
     public const string LightsBtn = "LightsBtn";
     public const string HazardBtn = "HazardBtn";

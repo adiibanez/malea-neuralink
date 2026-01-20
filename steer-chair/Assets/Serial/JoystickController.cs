@@ -2,7 +2,6 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using UnityEngine;
-using Sensocto;
 using Debug = UnityEngine.Debug;
 
 #if UNITY_EDITOR

@@ -1,5 +1,4 @@
 using UnityEngine;
-using Sensocto;
 
 public class SimulatorMoveDemo : MonoBehaviour, IMoveReceiver, IVehicleTelemetry
 {

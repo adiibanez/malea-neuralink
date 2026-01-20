@@ -5,7 +5,6 @@ using System.Linq;
 using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 using System;
-using Sensocto;
 using SteerChair.UI;
 
 #nullable enable
@@ -32,9 +31,7 @@ public class DriveEvents : MonoBehaviour
 
     public enum InputSource
     {
-        MouseJoystick,
-        Sensocto,
-        Both
+        MouseJoystick
     }
 
     // This should be improved and encapsulated
@@ -44,18 +41,13 @@ public class DriveEvents : MonoBehaviour
     private float _lastStateChangedAt;
 
     [Header("Input Source")]
-    [SerializeField] private InputSource inputSource = InputSource.Both;
-    [SerializeField] private SensoctoSensorProvider? sensoctoProvider;
+    [SerializeField] private InputSource inputSource = InputSource.MouseJoystick;
 
     [Header("Macro Controller")]
     [SerializeField] private MacroButtonsUI? macroButtonsUI;
 
     [Header("Right Menu")]
     [SerializeField] private RightMenuButtons? rightMenuButtons;
-
-    [Header("Mode Control")]
-    [SerializeField] private ModeController? modeController;
-    [SerializeField] private WheelchairState? wheelchairState;
 
     private Dictionary<string, Button> _fullButtonList;
     private List<Button> _driveOperationButtons;
@@ -74,12 +66,6 @@ public class DriveEvents : MonoBehaviour
             .Where(m => m != null)
             .Cast<IMoveReceiver>()
             .ToArray();
-
-        // Subscribe to Sensocto input if available
-        if (sensoctoProvider != null && (inputSource == InputSource.Sensocto || inputSource == InputSource.Both))
-        {
-            sensoctoProvider.OnMovementReceived.AddListener(OnSensoctoMovement);
-        }
 
         // Auto-find or create MacroButtonsUI
         if (macroButtonsUI == null)
@@ -101,46 +87,6 @@ public class DriveEvents : MonoBehaviour
         {
             rightMenuButtons = gameObject.AddComponent<RightMenuButtons>();
             Debug.Log("[DriveEvents] Created RightMenuButtons automatically");
-        }
-
-        // Auto-find or create ModeController and WheelchairState (only in DriveChair scene)
-        bool isDriveChairScene = SceneManager.GetActiveScene().name == "DriveChair";
-
-        if (isDriveChairScene)
-        {
-            if (modeController == null)
-            {
-                modeController = FindFirstObjectByType<ModeController>();
-            }
-            if (modeController == null)
-            {
-                modeController = gameObject.AddComponent<ModeController>();
-                Debug.Log("[DriveEvents] Created ModeController automatically");
-            }
-
-            if (wheelchairState == null)
-            {
-                wheelchairState = FindFirstObjectByType<WheelchairState>();
-            }
-            if (wheelchairState == null)
-            {
-                wheelchairState = gameObject.AddComponent<WheelchairState>();
-                Debug.Log("[DriveEvents] Created WheelchairState automatically");
-            }
-
-            // Auto-find or create ModeUI
-            if (GetComponent<ModeUI>() == null)
-            {
-                gameObject.AddComponent<ModeUI>();
-                Debug.Log("[DriveEvents] Created ModeUI automatically");
-            }
-
-            // Auto-find or create ActuatorControlUI
-            if (GetComponent<ActuatorControlUI>() == null)
-            {
-                gameObject.AddComponent<ActuatorControlUI>();
-                Debug.Log("[DriveEvents] Created ActuatorControlUI automatically");
-            }
         }
 
         VisualElement root = GetComponent<UIDocument>().rootVisualElement;
@@ -189,12 +135,6 @@ public class DriveEvents : MonoBehaviour
     {
         OnDriveStop(null);
         _mouseJoystick.UnregisterCallback<JoystickMoveEvent>(OnJoystickMoved);
-
-        // Unsubscribe from Sensocto input
-        if (sensoctoProvider != null)
-        {
-            sensoctoProvider.OnMovementReceived.RemoveListener(OnSensoctoMovement);
-        }
 
         foreach (var b in _fullButtonList.Values)
         {
@@ -284,12 +224,6 @@ public class DriveEvents : MonoBehaviour
 
     private void OnDriveStart(ClickEvent evnt)
     {
-        // Ensure we're in Drive mode on the wheelchair
-        if (wheelchairState != null && wheelchairState.CurrentMode != WheelchairState.WheelchairMode.Drive)
-        {
-            modeController?.SwitchToDriveMode();
-        }
-
         // Set Enabled State for Stop and Mouse Joystick
         _fullButtonList[DriveUIElementNames.StartBtn].SetEnabled(false);
         _fullButtonList[DriveUIElementNames.StopBtn].SetEnabled(true);
@@ -352,34 +286,13 @@ public class DriveEvents : MonoBehaviour
 
     private void OnJoystickMoved(JoystickMoveEvent evnt)
     {
-        // Skip mouse joystick input if only using Sensocto
-        if (inputSource == InputSource.Sensocto)
-            return;
-
         Debug.Log("OnJoystickMoved" + evnt.Direction.ToString());
         BroadcastMovement(evnt.Direction);
-    }
-
-    private void OnSensoctoMovement(Vector2 direction)
-    {
-        // Skip Sensocto input if only using MouseJoystick
-        if (inputSource == InputSource.MouseJoystick)
-            return;
-
-        Debug.Log("OnSensoctoMovement" + direction.ToString());
-        BroadcastMovement(direction);
     }
 
     private void BroadcastMovement(Vector2 direction)
     {
         _lastStateChangedAt = Time.time;
-
-        // Track movement commands for state confidence
-        // Only count significant movements to avoid noise
-        if (direction.magnitude > 0.1f)
-        {
-            wheelchairState?.IncrementCommandCount();
-        }
 
         foreach(var t in _joystickTargets)
         {

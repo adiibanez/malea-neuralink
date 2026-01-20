@@ -104,20 +104,12 @@
     opacity: 1;
 }
 
-/* Auth Status Container */
-#AuthStatusContainer, #SerialStatusContainer {
+/* Serial Status Container */
+#SerialStatusContainer {
     opacity: 0.3;
     transition: opacity 0.2s ease;
 }
 
-#AuthStatusContainer:hover, #SerialStatusContainer:hover {
-    opacity: 1;
-}
-
-.auth-status-container {
-    cursor: pointer;
-}
-
-.auth-status-container:hover {
+#SerialStatusContainer:hover {
     opacity: 1;
 }
