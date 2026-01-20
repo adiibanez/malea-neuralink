@@ -1,0 +1,20 @@
+
+  Changes made:
+  1. Copied SDK to Packages/com.sensocto.sdk/
+  2. Updated manifest.json to use local reference: "file:com.sensocto.sdk"
+  3. Removed packages-lock.json (Unity will regenerate it)
+
+  Next steps:
+  1. Open Unity - it will re-resolve packages
+  2. Delete old build: rm -rf
+  /Users/adrianibanez/Documents/projects/2025_homebrace/checkouts/malea-neuralink/builds/
+  3. Do a clean build (File → Build Settings → Build)
+  4. Use ditto to zip (not Finder):
+  ditto -c -k --keepParent /path/to/build/malea-neuralink.app malea-neuralink.zip
+  5. Send the zip to test
+
+  This removes the external dependency issue. If you still get "damaged" after this, it's purely a macOS code
+  signing issue and you'd need to either:
+  - Have recipients run xattr -cr /path/to/app.app
+  - Or sign with an Apple Developer certificate
+

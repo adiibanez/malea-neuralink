@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(tree:*)",
+      "Bash(git lfs track:*)",
+      "Bash(git lfs migrate:*)",
+      "Bash(git stash:*)",
+      "Bash(git push:*)",
+      "Bash(git lfs ls-files:*)",
+      "Bash(git lfs pull:*)",
+      "Bash(system_profiler:*)",
+      "Bash(ioreg:*)",
+      "Bash(lsof:*)",
+      "Bash(ls:*)",
+      "Bash(open:*)",
+      "Bash(xattr -cr:*)",
+      "Bash(codesign:*)",
+      "Bash(grep:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(SDK_PATH=\"/Users/adrianibanez/Documents/projects/2024_sensor-platform/sensocto/clients/unity/SensoctoSDK\")",
+      "Bash(if [ -d \"$SDK_PATH\" ])",
+      "Bash(then find \"$SDK_PATH\" -name \"*.dylib\" -o -name \"*.bundle\" -o -name \"*.so\" -o -name \"*.a\")",
+      "Bash(else echo \"SDK path not found: $SDK_PATH\")",
+      "Bash(fi)",
+      "Bash(git log:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
