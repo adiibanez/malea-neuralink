@@ -100,8 +100,8 @@ public static class SerialPortUtility
             return "";
         }
 
-        // Fall back to directory scanning
-        string[] patterns = new[]
+        // Fall back to directory scanning - try specific patterns first
+        string[] specificPatterns = new[]
         {
             "/dev/cu.usbmodem*",
             "/dev/cu.usbserial*",
@@ -109,7 +109,7 @@ public static class SerialPortUtility
             "/dev/cu.SLAB_USBtoUART",
         };
 
-        foreach (string pattern in patterns)
+        foreach (string pattern in specificPatterns)
         {
             string[] matchingPorts = GlobPorts(pattern);
             Debug.Log($"[SerialPortUtility] Pattern '{pattern}' found {matchingPorts.Length} ports: {string.Join(", ", matchingPorts)}");
@@ -122,7 +122,32 @@ public static class SerialPortUtility
             }
         }
 
-        Debug.LogWarning("[SerialPortUtility] No usbmodem/usbserial device found in /dev/");
+        // Fallback: try ANY cu.* device (excluding known non-serial devices)
+        Debug.Log("[SerialPortUtility] No specific patterns matched, trying generic cu.* fallback...");
+        string[] allCuPorts = GlobPorts("/dev/cu.*");
+        Debug.Log($"[SerialPortUtility] Found {allCuPorts.Length} cu.* devices: {string.Join(", ", allCuPorts)}");
+
+        // Filter out known non-serial devices (Bluetooth, debug console, audio devices)
+        string[] excludePatterns = new[] { "Bluetooth", "debug-console", "wlan", "JBL", "Shokz", "AirPods", "Beats" };
+        foreach (string port in allCuPorts)
+        {
+            bool excluded = false;
+            foreach (string exclude in excludePatterns)
+            {
+                if (port.IndexOf(exclude, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    excluded = true;
+                    break;
+                }
+            }
+            if (!excluded)
+            {
+                Debug.Log($"[SerialPortUtility] Fallback selected port: {port}");
+                return port;
+            }
+        }
+
+        Debug.LogWarning("[SerialPortUtility] No serial device found in /dev/");
         return "";
     }
 
@@ -172,28 +197,47 @@ Option 3 - Use the post-build script in Assets/Editor/DisableSandbox.cs
         {
             string directory = Path.GetDirectoryName(pattern);
             string filePattern = Path.GetFileName(pattern);
-            
-            if (string.IsNullOrEmpty(directory) || !Directory.Exists(directory))
+
+            if (string.IsNullOrEmpty(directory))
+            {
+                Debug.LogWarning($"[SerialPortUtility] GlobPorts: empty directory for pattern {pattern}");
                 return Array.Empty<string>();
-            
+            }
+
+            if (!Directory.Exists(directory))
+            {
+                Debug.LogWarning($"[SerialPortUtility] GlobPorts: directory {directory} does not exist");
+                return Array.Empty<string>();
+            }
+
             // Convert glob pattern to search pattern
             // Unity/Mono doesn't have full glob support, so we do simple wildcard
             string searchPattern = filePattern.Replace("*", "");
-            
-            string[] files = Directory.GetFiles(directory);
+
+            string[] files;
+            try
+            {
+                files = Directory.GetFiles(directory);
+            }
+            catch (Exception dirEx)
+            {
+                Debug.LogWarning($"[SerialPortUtility] GlobPorts: Directory.GetFiles({directory}) failed: {dirEx.Message}");
+                return Array.Empty<string>();
+            }
+
             var matches = new System.Collections.Generic.List<string>();
-            
+
             foreach (string file in files)
             {
                 string fileName = Path.GetFileName(file);
-                // Simple prefix match for patterns like "usbmodem*"
-                if (fileName.StartsWith(searchPattern) || 
+                // Simple prefix match for patterns like "cu.usbmodem*"
+                if (fileName.StartsWith(searchPattern) ||
                     (filePattern.StartsWith("*") && fileName.Contains(searchPattern)))
                 {
                     matches.Add(file);
                 }
             }
-            
+
             // Sort for consistent ordering
             matches.Sort();
             return matches.ToArray();

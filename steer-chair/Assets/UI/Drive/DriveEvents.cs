@@ -49,6 +49,9 @@ public class DriveEvents : MonoBehaviour
     [Header("Right Menu")]
     [SerializeField] private RightMenuButtons? rightMenuButtons;
 
+    [Header("Serial Status")]
+    [SerializeField] private SerialStatusIndicator? serialStatusIndicator;
+
     private Dictionary<string, Button> _fullButtonList;
     private List<Button> _driveOperationButtons;
     private HoverActivateButton _stopBtn;
@@ -87,6 +90,17 @@ public class DriveEvents : MonoBehaviour
         {
             rightMenuButtons = gameObject.AddComponent<RightMenuButtons>();
             Debug.Log("[DriveEvents] Created RightMenuButtons automatically");
+        }
+
+        // Auto-find or create SerialStatusIndicator
+        if (serialStatusIndicator == null)
+        {
+            serialStatusIndicator = GetComponent<SerialStatusIndicator>();
+        }
+        if (serialStatusIndicator == null)
+        {
+            serialStatusIndicator = gameObject.AddComponent<SerialStatusIndicator>();
+            Debug.Log("[DriveEvents] Created SerialStatusIndicator automatically");
         }
 
         VisualElement root = GetComponent<UIDocument>().rootVisualElement;

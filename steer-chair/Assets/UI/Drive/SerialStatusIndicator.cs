@@ -26,9 +26,12 @@ public class SerialStatusIndicator : MonoBehaviour
 
     void OnEnable()
     {
+        Debug.Log($"[SerialStatusIndicator] OnEnable called, scene={SceneManager.GetActiveScene().name}");
+
         // Only initialize in DriveChair scene
         if (SceneManager.GetActiveScene().name != DRIVE_CHAIR_SCENE)
         {
+            Debug.Log($"[SerialStatusIndicator] Wrong scene, disabling (expected {DRIVE_CHAIR_SCENE})");
             enabled = false;
             return;
         }
@@ -40,14 +43,24 @@ public class SerialStatusIndicator : MonoBehaviour
     {
         yield return null;
 
+        Debug.Log($"[SerialStatusIndicator] InitializeDelayed running, scene={SceneManager.GetActiveScene().name}");
+
         // Double-check we're in the right scene
         if (SceneManager.GetActiveScene().name != DRIVE_CHAIR_SCENE)
         {
+            Debug.Log("[SerialStatusIndicator] Scene changed, aborting");
             yield break;
         }
 
-        _root = GetComponent<UIDocument>().rootVisualElement;
-        if (_root == null) yield break;
+        var uiDoc = GetComponent<UIDocument>();
+        Debug.Log($"[SerialStatusIndicator] UIDocument={uiDoc}, rootVisualElement={(uiDoc?.rootVisualElement != null ? "exists" : "null")}");
+
+        _root = uiDoc?.rootVisualElement;
+        if (_root == null)
+        {
+            Debug.LogWarning("[SerialStatusIndicator] rootVisualElement is null, aborting");
+            yield break;
+        }
 
         // Find or create status elements
         SetupStatusElements();
@@ -56,6 +69,7 @@ public class SerialStatusIndicator : MonoBehaviour
         if (joystickController == null)
         {
             joystickController = FindAnyObjectByType<JoystickController>();
+            Debug.Log($"[SerialStatusIndicator] FindAnyObjectByType returned: {(joystickController != null ? joystickController.name : "null")}");
         }
 
         if (joystickController != null)
@@ -64,7 +78,9 @@ public class SerialStatusIndicator : MonoBehaviour
             joystickController.OnSerialConnectionChanged += OnConnectionStateChanged;
 
             // Set initial state
-            UpdateStatusDisplay(joystickController.IsConnected);
+            bool isConnected = joystickController.IsConnected;
+            Debug.Log($"[SerialStatusIndicator] Initial connection state: {isConnected}");
+            UpdateStatusDisplay(isConnected);
 
             Debug.Log("[SerialStatusIndicator] Initialized and subscribed to JoystickController");
         }
@@ -107,7 +123,13 @@ public class SerialStatusIndicator : MonoBehaviour
 
     private void UpdateStatusDisplay(bool isConnected)
     {
-        if (_statusIndicator == null || _statusLabel == null) return;
+        Debug.Log($"[SerialStatusIndicator] UpdateStatusDisplay called: isConnected={isConnected}, indicator={(_statusIndicator != null)}, label={(_statusLabel != null)}");
+
+        if (_statusIndicator == null || _statusLabel == null)
+        {
+            Debug.LogWarning("[SerialStatusIndicator] UI elements not found, cannot update display");
+            return;
+        }
 
         if (isConnected)
         {
