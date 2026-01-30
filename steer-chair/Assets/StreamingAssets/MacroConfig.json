@@ -1,37 +1,5 @@
 {
   "actuators": [
-    {
-      "id": "seat_tilt",
-      "label": "Seat Tilt",
-      "increaseLabel": "+",
-      "decreaseLabel": "-",
-      "increaseMacro": "S63D31R1,P200,S31D31R1",
-      "decreaseMacro": "S00D31R1,P200,S31D31R1"
-    },
-    {
-      "id": "seat_lift",
-      "label": "Seat Lift",
-      "increaseLabel": "+",
-      "decreaseLabel": "-",
-      "increaseMacro": "S63D31R2,P200,S31D31R2",
-      "decreaseMacro": "S00D31R2,P200,S31D31R2"
-    },
-    {
-      "id": "back_rest",
-      "label": "Back Rest",
-      "increaseLabel": "+",
-      "decreaseLabel": "-",
-      "increaseMacro": "S63D31R3,P200,S31D31R3",
-      "decreaseMacro": "S00D31R3,P200,S31D31R3"
-    },
-    {
-      "id": "leg_rest",
-      "label": "Leg Rest",
-      "increaseLabel": "+",
-      "decreaseLabel": "-",
-      "increaseMacro": "S63D31R4,P200,S31D31R4",
-      "decreaseMacro": "S00D31R4,P200,S31D31R4"
-    }
   ],
   "actions": [
   ],

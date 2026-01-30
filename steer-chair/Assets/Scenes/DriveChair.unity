@@ -225,7 +225,6 @@ GameObject:
   - component: {fileID: 734146703}
   - component: {fileID: 734146704}
   - component: {fileID: 734146705}
-  - component: {fileID: 734146706}
   m_Layer: 0
   m_Name: Drive_UIDocument
   m_TagString: Untagged
@@ -246,11 +245,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DriveEvents
   inputSource: 2
-  sensoctoProvider: {fileID: 0}
   macroButtonsUI: {fileID: 0}
   rightMenuButtons: {fileID: 0}
-  modeController: {fileID: 0}
-  wheelchairState: {fileID: 0}
+  serialStatusIndicator: {fileID: 0}
 --- !u!114 &734146701
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -333,57 +330,20 @@ MonoBehaviour:
   m_GameObject: {fileID: 734146699}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5353a23779273419ebe14e2ae0888e57, type: 3}
+  m_Script: {fileID: 11500000, guid: d458aeabba4aa463fa9cbcbcc3aed458, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Sensocto::Sensocto.JoystickSensorEmitter
-  serverUrl: wss://sensocto.fly.dev/socket
-  bearerToken: 
-  connectOnStart: 1
-  useAuthManager: 1
-  sensorName: DriveChair Joystick
-  sensorType: joystick
-  samplingRateHz: 30
-  batchSize: 5
-  sendSeparateAxes: 1
-  sendCombinedXY: 1
-  changeThreshold: 0.01
-  OnConnected:
-    m_PersistentCalls:
-      m_Calls: []
-  OnDisconnected:
-    m_PersistentCalls:
-      m_Calls: []
-  OnSensorRegistered:
-    m_PersistentCalls:
-      m_Calls: []
---- !u!114 &734146706
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 734146699}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fa76bb9aa626045b99b0aaeaec022d3f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Sensocto.SDK::Sensocto.SDK.SerialConnectionIndicator
-  connectionMonitor: {fileID: 0}
-  statusImage: {fileID: 0}
-  statusText: {fileID: 0}
-  portText: {fileID: 0}
-  connectedColor: {r: 0.2, g: 0.8, b: 0.2, a: 1}
-  disconnectedColor: {r: 0.8, g: 0.2, b: 0.2, a: 1}
-  connectingColor: {r: 0.8, g: 0.8, b: 0.2, a: 1}
-  reconnectingColor: {r: 0.8, g: 0.5, b: 0.2, a: 1}
-  errorColor: {r: 0.5, g: 0, b: 0, a: 1}
-  blinkOnReconnect: 1
-  blinkInterval: 0.5
-  connectedFormat: Connected
-  disconnectedFormat: Disconnected
-  connectingFormat: Connecting...
-  reconnectingFormat: Reconnecting ({0}/{1})
-  errorFormat: Error
+  m_EditorClassIdentifier: Assembly-CSharp::RightMenuButtons
+  highlightDuration: 2
+  highlightColor: {r: 1, g: 0.84, b: 0, a: 1}
+  activeColor: {r: 0.3, g: 0.69, b: 0.31, a: 1}
+  defaultColor: {r: 0.78, g: 0.78, b: 0.78, a: 1}
+  audioSource: {fileID: 0}
+  excuseMeClip: {fileID: 8300000, guid: 7619dbece407049589729d3677b80fd0, type: 3}
+  noClip: {fileID: 8300000, guid: af486341c0f35459bab003a2d33fcf81, type: 3}
+  thankYouClip: {fileID: 8300000, guid: 4dbfd17f0a1ba45d0b6d231feae60938, type: 3}
+  yesClip: {fileID: 8300000, guid: 4b67b52cce5c6449591484be84777748, type: 3}
+  macroController: {fileID: 0}
+  modeIndicator: {fileID: 0}
 --- !u!1 &944130363
 GameObject:
   m_ObjectHideFlags: 0

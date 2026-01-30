@@ -17,8 +17,6 @@ public class DriveEvents : MonoBehaviour
         DriveUIElementNames.ReadyBtn,
         DriveUIElementNames.StartBtn,
         DriveUIElementNames.StopBtn,
-        DriveUIElementNames.FasterBtn,
-        DriveUIElementNames.SlowerBtn,
         DriveUIElementNames.MouseJoystick,
     };
 

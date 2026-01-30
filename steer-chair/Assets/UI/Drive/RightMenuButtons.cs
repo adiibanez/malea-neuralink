@@ -5,33 +5,101 @@ using UnityEngine.UIElements;
 
 /// <summary>
 /// Handles the right menu button behaviors:
-/// - Lights/Hazards: Toggle with continuous blinking while active
-/// - Other buttons: Highlight for a few seconds then return to standby
+/// - Audio buttons: Play audio clips from Audio/Eoin folder
+/// - Mode button: Switch relay 5 for 5 seconds
+/// - Profile button: Switch relay 5 for 1 second
+/// - Power On/Off button: Switch relay 6 for 6 seconds
 /// </summary>
 [RequireComponent(typeof(UIDocument))]
 public class RightMenuButtons : MonoBehaviour
 {
     [Header("Timing")]
     [SerializeField] private float highlightDuration = 2f;
-    [SerializeField] private float blinkInterval = 0.5f;
 
     [Header("Colors")]
     [SerializeField] private Color highlightColor = new Color(1f, 0.84f, 0f); // Gold
-    [SerializeField] private Color lightsActiveColor = new Color(1f, 0.92f, 0.23f); // Yellow
-    [SerializeField] private Color hazardActiveColor = new Color(1f, 0.6f, 0f); // Orange
+    [SerializeField] private Color activeColor = new Color(0.30f, 0.69f, 0.31f); // Green
     [SerializeField] private Color defaultColor = new Color(0.78f, 0.78f, 0.78f); // Light gray
+
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip excuseMeClip;
+    [SerializeField] private AudioClip noClip;
+    [SerializeField] private AudioClip thankYouClip;
+    [SerializeField] private AudioClip yesClip;
+
+    [Header("Macro Controller")]
+    [SerializeField] private MacroController macroController;
+
+    [Header("Mode Indicator")]
+    [SerializeField] private ModeIndicator modeIndicator;
 
     private VisualElement _root;
     private Dictionary<string, Button> _buttons = new Dictionary<string, Button>();
     private Dictionary<string, Color> _originalColors = new Dictionary<string, Color>();
     private Dictionary<string, Coroutine> _activeCoroutines = new Dictionary<string, Coroutine>();
+    private Dictionary<string, AudioClip> _audioClips = new Dictionary<string, AudioClip>();
 
-    // Toggle states for lights and hazards
-    private bool _lightsActive = false;
-    private bool _hazardActive = false;
+    private static readonly string[] AudioButtons = { "AudioBtn_excuse_me", "AudioBtn_no", "AudioBtn_thank_you", "AudioBtn_yes" };
+    private static readonly string[] ControlButtons = { "ModeBtn", "ProfileBtn", "PowerOnOffBtn" };
 
-    private static readonly string[] ToggleButtons = { "LightsBtn", "HazardBtn" };
-    private static readonly string[] MomentaryButtons = { "PowerBtn", "HornBtn", "FasterBtn", "SlowerBtn" };
+    void Awake()
+    {
+        // Auto-find or create AudioSource
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+        }
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+            audioSource.playOnAwake = false;
+        }
+
+        // Auto-find MacroController
+        if (macroController == null)
+        {
+            macroController = FindFirstObjectByType<MacroController>();
+        }
+
+        // Auto-find or create ModeIndicator
+        if (modeIndicator == null)
+        {
+            modeIndicator = GetComponent<ModeIndicator>();
+        }
+        if (modeIndicator == null)
+        {
+            modeIndicator = gameObject.AddComponent<ModeIndicator>();
+            Debug.Log("[RightMenuButtons] Created ModeIndicator automatically");
+        }
+
+        // Load audio clips
+        LoadAudioClips();
+    }
+
+    private void LoadAudioClips()
+    {
+        // Use serialized fields (assigned in Inspector) as the primary source
+        if (excuseMeClip != null)
+            _audioClips["excuse_me"] = excuseMeClip;
+        if (noClip != null)
+            _audioClips["no"] = noClip;
+        if (thankYouClip != null)
+            _audioClips["thank_you"] = thankYouClip;
+        if (yesClip != null)
+            _audioClips["yes"] = yesClip;
+
+        // Log which clips are loaded
+        foreach (var kvp in _audioClips)
+        {
+            Debug.Log($"[RightMenuButtons] Audio clip ready: {kvp.Key}");
+        }
+
+        if (_audioClips.Count == 0)
+        {
+            Debug.LogWarning("[RightMenuButtons] No audio clips assigned. Please assign clips in the Inspector.");
+        }
+    }
 
     void OnEnable()
     {
@@ -45,13 +113,17 @@ public class RightMenuButtons : MonoBehaviour
         _root = GetComponent<UIDocument>().rootVisualElement;
         if (_root == null) yield break;
 
-        // Find and setup all right menu buttons
-        SetupButton("PowerBtn");
-        SetupButton("HornBtn");
-        SetupButton("LightsBtn");
-        SetupButton("HazardBtn");
-        SetupButton("FasterBtn");
-        SetupButton("SlowerBtn");
+        // Setup audio buttons
+        foreach (var btnName in AudioButtons)
+        {
+            SetupButton(btnName);
+        }
+
+        // Setup control buttons
+        foreach (var btnName in ControlButtons)
+        {
+            SetupButton(btnName);
+        }
 
         Debug.Log($"[RightMenuButtons] Initialized {_buttons.Count} buttons");
     }
@@ -82,9 +154,6 @@ public class RightMenuButtons : MonoBehaviour
         }
         _buttons.Clear();
         _originalColors.Clear();
-
-        _lightsActive = false;
-        _hazardActive = false;
     }
 
     private void SetupButton(string buttonName)
@@ -113,47 +182,89 @@ public class RightMenuButtons : MonoBehaviour
         string buttonName = button.name;
         Debug.Log($"[RightMenuButtons] Button clicked: {buttonName}");
 
-        // Handle toggle buttons (Lights, Hazard)
-        if (buttonName == "LightsBtn")
+        // Handle audio buttons
+        if (buttonName.StartsWith("AudioBtn_"))
         {
-            _lightsActive = !_lightsActive;
-            HandleToggleButton(buttonName, _lightsActive, lightsActiveColor);
-        }
-        else if (buttonName == "HazardBtn")
-        {
-            _hazardActive = !_hazardActive;
-            HandleToggleButton(buttonName, _hazardActive, hazardActiveColor);
-        }
-        // Handle momentary buttons
-        else if (System.Array.Exists(MomentaryButtons, b => b == buttonName))
-        {
+            string clipName = buttonName.Replace("AudioBtn_", "");
+            PlayAudioClip(clipName);
             HandleMomentaryButton(buttonName);
+        }
+        // Handle control buttons
+        else if (buttonName == "ModeBtn")
+        {
+            // Toggle mode and activate relay 5 for 5 seconds
+            modeIndicator?.ToggleMode();
+            HandleRelayButton(buttonName, 5, 5.0f); // Relay 5 for 5 seconds
+        }
+        else if (buttonName == "ProfileBtn")
+        {
+            HandleRelayButton(buttonName, 5, 1.0f); // Relay 5 for 1 second
+        }
+        else if (buttonName == "PowerOnOffBtn")
+        {
+            HandleRelayButton(buttonName, 6, 6.0f); // Relay 6 for 6 seconds
         }
     }
 
-    private void HandleToggleButton(string buttonName, bool isActive, Color activeColor)
+    private void PlayAudioClip(string clipName)
+    {
+        if (_audioClips.TryGetValue(clipName, out AudioClip clip))
+        {
+            audioSource.PlayOneShot(clip);
+            Debug.Log($"[RightMenuButtons] Playing audio: {clipName}");
+        }
+        else
+        {
+            Debug.LogWarning($"[RightMenuButtons] Audio clip not found: {clipName}");
+        }
+    }
+
+    private void HandleRelayButton(string buttonName, int relayNumber, float duration)
     {
         // Stop existing coroutine if any
         if (_activeCoroutines.TryGetValue(buttonName, out Coroutine existing) && existing != null)
         {
             StopCoroutine(existing);
-            _activeCoroutines.Remove(buttonName);
         }
 
-        if (isActive)
+        // Start relay activation coroutine
+        _activeCoroutines[buttonName] = StartCoroutine(RelayActivationCoroutine(buttonName, relayNumber, duration));
+    }
+
+    private IEnumerator RelayActivationCoroutine(string buttonName, int relayNumber, float duration)
+    {
+        if (!_buttons.TryGetValue(buttonName, out Button button)) yield break;
+        if (!_originalColors.TryGetValue(buttonName, out Color original)) yield break;
+
+        // Set active color
+        button.style.backgroundColor = new StyleColor(activeColor);
+        button.SetEnabled(false);
+
+        // Activate relay (send full forward command to robot/relay number)
+        // S63 = full speed forward, D31 = neutral direction
+        if (macroController != null)
         {
-            // Start blinking
-            _activeCoroutines[buttonName] = StartCoroutine(BlinkCoroutine(buttonName, activeColor));
+            string activateMacro = $"S63D31R{relayNumber}";
+            macroController.SendRawCommand(activateMacro);
+            Debug.Log($"[RightMenuButtons] Activated relay {relayNumber}: {activateMacro}");
         }
-        else
+
+        // Wait for duration
+        yield return new WaitForSeconds(duration);
+
+        // Deactivate relay (send neutral command)
+        if (macroController != null)
         {
-            // Restore original color
-            if (_buttons.TryGetValue(buttonName, out Button button) &&
-                _originalColors.TryGetValue(buttonName, out Color original))
-            {
-                button.style.backgroundColor = new StyleColor(original);
-            }
+            string deactivateMacro = $"S31D31R{relayNumber}";
+            macroController.SendRawCommand(deactivateMacro);
+            Debug.Log($"[RightMenuButtons] Deactivated relay {relayNumber}: {deactivateMacro}");
         }
+
+        // Restore original color and enable button
+        button.style.backgroundColor = new StyleColor(original);
+        button.SetEnabled(true);
+
+        _activeCoroutines.Remove(buttonName);
     }
 
     private void HandleMomentaryButton(string buttonName)
@@ -166,20 +277,6 @@ public class RightMenuButtons : MonoBehaviour
 
         // Start highlight coroutine
         _activeCoroutines[buttonName] = StartCoroutine(HighlightCoroutine(buttonName));
-    }
-
-    private IEnumerator BlinkCoroutine(string buttonName, Color activeColor)
-    {
-        if (!_buttons.TryGetValue(buttonName, out Button button)) yield break;
-        if (!_originalColors.TryGetValue(buttonName, out Color original)) yield break;
-
-        bool isOn = true;
-        while (true)
-        {
-            button.style.backgroundColor = new StyleColor(isOn ? activeColor : original);
-            isOn = !isOn;
-            yield return new WaitForSeconds(blinkInterval);
-        }
     }
 
     private IEnumerator HighlightCoroutine(string buttonName)
@@ -200,33 +297,6 @@ public class RightMenuButtons : MonoBehaviour
     }
 
     /// <summary>
-    /// Gets if lights are currently active.
-    /// </summary>
-    public bool IsLightsActive => _lightsActive;
-
-    /// <summary>
-    /// Gets if hazard is currently active.
-    /// </summary>
-    public bool IsHazardActive => _hazardActive;
-
-    /// <summary>
-    /// Turns off all active toggles (lights, hazard).
-    /// </summary>
-    public void TurnOffAllToggles()
-    {
-        if (_lightsActive)
-        {
-            _lightsActive = false;
-            HandleToggleButton("LightsBtn", false, lightsActiveColor);
-        }
-        if (_hazardActive)
-        {
-            _hazardActive = false;
-            HandleToggleButton("HazardBtn", false, hazardActiveColor);
-        }
-    }
-
-    /// <summary>
     /// Sets enabled state for all buttons.
     /// </summary>
     public void SetAllButtonsEnabled(bool enabled)
@@ -236,4 +306,18 @@ public class RightMenuButtons : MonoBehaviour
             button.SetEnabled(enabled);
         }
     }
+
+    /// <summary>
+    /// Reloads audio clips from serialized fields.
+    /// </summary>
+    public void ReloadAudioClips()
+    {
+        _audioClips.Clear();
+        LoadAudioClips();
+    }
+
+    /// <summary>
+    /// Gets the current mode indicator reference.
+    /// </summary>
+    public ModeIndicator ModeIndicator => modeIndicator;
 }
