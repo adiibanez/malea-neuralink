@@ -49,6 +49,9 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
     private float? timeDiffMin = null;
     private float timeDiffMax = 0f;
 
+    // Last command sent (for telemetry)
+    private string lastCommand = "";
+
     // Thread-safe timing (Stopwatch works across threads unlike Time.realtimeSinceStartup)
     private Stopwatch stopwatch;
 
@@ -378,6 +381,15 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
     }
     
     /// <summary>
+    /// Thread-safe write for external callers (e.g. MacroController) sharing this serial port.
+    /// Acquires the same lock as the background SendLoop to prevent command interleaving.
+    /// </summary>
+    public bool SharedWrite(string data)
+    {
+        return SafeSerialWrite(data);
+    }
+
+    /// <summary>
     /// Background thread that continuously sends commands at the specified interval.
     /// </summary>
     private void SendLoop()
@@ -448,6 +460,7 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
 
                 if (timeDiff >= updateInterval)
                 {
+                    lastCommand = cmd;
                     bool writeSuccess = SafeSerialWrite(cmd);
                     lastSendTime = now;
 
@@ -576,13 +589,52 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
         }
     }
     
+    public JoystickTelemetry GetTelemetry()
+    {
+        lock (inputLock)
+        {
+            float now = (float)stopwatch.Elapsed.TotalSeconds;
+            return new JoystickTelemetry
+            {
+                Speed = speed,
+                Direction = direction,
+                LastInputTime = lastInputTime,
+                LastSendTime = lastSendTime,
+                IsIdle = (now - lastInputTime) > idleTimeout,
+                IsConnected = IsSerialConnected(),
+                PortName = serialPort,
+                ReconnectAttempts = reconnectAttempts,
+                ConsecutiveErrors = consecutiveErrors,
+                TimeDiffMin = timeDiffMin ?? 0f,
+                TimeDiffMax = timeDiffMax,
+                LastCommand = lastCommand
+            };
+        }
+    }
+
     void OnDestroy()
     {
         Close();
     }
-    
+
     void OnApplicationQuit()
     {
         Close();
     }
+}
+
+public struct JoystickTelemetry
+{
+    public int Speed;
+    public int Direction;
+    public float LastInputTime;
+    public float LastSendTime;
+    public bool IsIdle;
+    public bool IsConnected;
+    public string PortName;
+    public int ReconnectAttempts;
+    public int ConsecutiveErrors;
+    public float TimeDiffMin;
+    public float TimeDiffMax;
+    public string LastCommand;
 }

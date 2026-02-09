@@ -13,18 +13,26 @@
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="ModeIndicatorContainer" style="margin-top: 15px; background-color: rgba(255, 255, 255, 0.9); border-radius: 8px; padding: 8px;">
-                <ui:Label name="ModeHeader" text="Current Mode" style="color: rgb(0, 0, 0); -unity-font-style: bold; margin-bottom: 8px;"/>
                 <ui:VisualElement name="ModeIndicatorRow" style="flex-direction: row; align-items: center;">
                     <ui:VisualElement name="ModeIndicator" style="width: 12px; height: 12px; border-radius: 6px; margin-right: 8px; background-color: rgb(76, 175, 80);"/>
                     <ui:Label name="ModeLabel" text="Driving" style="color: rgb(0, 0, 0); font-size: 14px; -unity-font-style: bold;"/>
                 </ui:VisualElement>
-            </ui:VisualElement>
-            <ui:VisualElement name="SerialStatusContainer" style="margin-top: auto; background-color: rgba(255, 255, 255, 0.9); border-radius: 8px; padding: 8px;">
-                <ui:Label name="SerialStatusHeader" text="Serial Port" style="color: rgb(0, 0, 0); -unity-font-style: bold; margin-bottom: 4px;"/>
-                <ui:VisualElement name="SerialStatusRow" style="flex-direction: row; align-items: center;">
-                    <ui:VisualElement name="SerialStatusIndicator" style="width: 12px; height: 12px; border-radius: 6px; margin-right: 8px; background-color: rgb(204, 51, 51);"/>
-                    <ui:Label name="SerialStatusLabel" text="Disconnected" style="color: rgb(0, 0, 0); font-size: 12px;"/>
+                <ui:VisualElement name="SeatArrowContainer" style="margin-top: 8px; display: none;">
+                    <ui:VisualElement class="seat-arrow-row">
+                        <ui:Button text="&#x25C4;" name="SeatLeftBtn" class="button seat-arrow-btn"/>
+                        <ui:Button text="&#x25BA;" name="SeatRightBtn" class="button seat-arrow-btn"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="seat-arrow-row">
+                        <ui:Button text="&#x25B2;" name="SeatUpBtn" class="button seat-arrow-btn"/>
+                        <ui:Button text="&#x25BC;" name="SeatDownBtn" class="button seat-arrow-btn"/>
+                    </ui:VisualElement>
                 </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="ControlButtons" picking-mode="Ignore" style="margin-top: 15px; background-color: rgba(255, 255, 255, 0.9); border-radius: 8px; padding: 8px;">
+                <ui:Label text="Controls" style="color: rgb(0, 0, 0); -unity-font-style: bold; margin-bottom: 4px;"/>
+                <ui:Button text="Mode" name="ModeBtn" class="button mb-1"/>
+                <ui:Button text="Profile" name="ProfileBtn" class="button mb-1"/>
+                <ui:Button text="Power On/Off" name="PowerOnOffBtn" class="button mb-1"/>
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="Center" picking-mode="Ignore" style="align-content: flex-end; align-self: auto; justify-content: center; margin-top: 8%; flex-grow: 1; margin-bottom: 2%;">
@@ -51,17 +59,59 @@
         </ui:VisualElement>
         <ui:VisualElement name="RightMenu" picking-mode="Ignore" class="side-menu" style="width: 160px;">
             <ui:VisualElement name="AudioButtons" picking-mode="Ignore">
-                <ui:Label text="Audio" style="color: rgb(255, 255, 255); -unity-font-style: bold; margin-bottom: 4px;"/>
-                <ui:Button text="excuse_me" name="AudioBtn_excuse_me" class="button mb-1"/>
-                <ui:Button text="no" name="AudioBtn_no" class="button mb-1"/>
-                <ui:Button text="thank_you" name="AudioBtn_thank_you" class="button mb-1"/>
-                <ui:Button text="yes" name="AudioBtn_yes" class="button mb-1"/>
+                <ui:Button text="Hi there" name="AudioBtn_hi_there" class="button mb-1"/>
+                <ui:Button text="Drive me" name="AudioBtn_drive_me" class="button mb-1"/>
+                <ui:Button text="Excuse me" name="AudioBtn_excuse_me" class="button mb-1"/>
+                <ui:Button text="Yes" name="AudioBtn_yes" class="button mb-1"/>
+                <ui:Button text="No" name="AudioBtn_no" class="button mb-1"/>
+                <ui:Button text="Thank you" name="AudioBtn_thank_you" class="button mb-1"/>
+                <ui:Button text="I'm fine" name="AudioBtn_im_fine" class="button mb-1"/>
+                <ui:Button text="I'm hot" name="AudioBtn_im_hot" class="button mb-1"/>
+                <ui:Button text="I'm cold" name="AudioBtn_im_cold" class="button mb-1"/>
+                <ui:Button text="Suctioning" name="AudioBtn_suctioning" class="button mb-1"/>
+                <ui:Button text="Unplug/Plugin" name="AudioBtn_unplug_plugin" class="button mb-1"/>
             </ui:VisualElement>
-            <ui:VisualElement name="ControlButtons" picking-mode="Ignore" style="margin-top: 15px;">
-                <ui:Label text="Controls" style="color: rgb(255, 255, 255); -unity-font-style: bold; margin-bottom: 4px;"/>
-                <ui:Button text="Mode" name="ModeBtn" class="button mb-1"/>
-                <ui:Button text="Profile" name="ProfileBtn" class="button mb-1"/>
-                <ui:Button text="Power On/Off" name="PowerOnOffBtn" class="button mb-1"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="DebugPanel" class="debug-panel" style="display: none;">
+            <ui:VisualElement name="DebugPanelBar" class="debug-panel-bar">
+                <ui:VisualElement name="DebugBarStatus" class="debug-bar-status">
+                    <ui:VisualElement name="SerialStatusIndicator" style="width: 10px; height: 10px; border-radius: 5px; background-color: rgb(204, 51, 51);"/>
+                    <ui:Label name="SerialStatusLabel" text="Disconnected" class="debug-bar-status-label"/>
+                    <ui:Label name="DbgBarPort" text="" class="debug-bar-status-label"/>
+                </ui:VisualElement>
+                <ui:Button text="Debug" name="DebugToggleBtn" class="button debug-toggle-btn"/>
+            </ui:VisualElement>
+            <ui:VisualElement name="DebugPanelContent" class="debug-panel-content" style="display: none;">
+                <ui:VisualElement class="debug-col">
+                    <ui:Label text="Serial" class="debug-col-header"/>
+                    <ui:Label name="DbgLastCmd" text="Cmd: --" class="debug-label"/>
+                    <ui:Label name="DbgPortName" text="Port: --" class="debug-label"/>
+                    <ui:Label name="DbgIsConnected" text="Connected: --" class="debug-label"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="debug-col">
+                    <ui:Label text="Input" class="debug-col-header"/>
+                    <ui:Label name="DbgSpeed" text="Speed: --" class="debug-label"/>
+                    <ui:Label name="DbgDirection" text="Dir: --" class="debug-label"/>
+                    <ui:Label name="DbgIsIdle" text="Idle: --" class="debug-label"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="debug-col">
+                    <ui:Label text="Connection" class="debug-col-header"/>
+                    <ui:Label name="DbgReconnects" text="Reconnects: --" class="debug-label"/>
+                    <ui:Label name="DbgErrors" text="Errors: --" class="debug-label"/>
+                    <ui:Label name="DbgTimingMin" text="Tmin: --" class="debug-label"/>
+                    <ui:Label name="DbgTimingMax" text="Tmax: --" class="debug-label"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="debug-col">
+                    <ui:Label text="State" class="debug-col-header"/>
+                    <ui:Label name="DbgDriveState" text="Drive: --" class="debug-label"/>
+                    <ui:Label name="DbgMacroState" text="Macro: --" class="debug-label"/>
+                    <ui:Label name="DbgMacroCmd" text="MCmd: --" class="debug-label"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="debug-col">
+                    <ui:Label text="Relays" class="debug-col-header"/>
+                    <ui:Button text="Relay 5" name="Relay5ToggleBtn" class="button relay-toggle-btn debug-relay-btn"/>
+                    <ui:Button text="Relay 6" name="Relay6ToggleBtn" class="button relay-toggle-btn debug-relay-btn"/>
+                </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

@@ -122,32 +122,7 @@ public static class SerialPortUtility
             }
         }
 
-        // Fallback: try ANY cu.* device (excluding known non-serial devices)
-        Debug.Log("[SerialPortUtility] No specific patterns matched, trying generic cu.* fallback...");
-        string[] allCuPorts = GlobPorts("/dev/cu.*");
-        Debug.Log($"[SerialPortUtility] Found {allCuPorts.Length} cu.* devices: {string.Join(", ", allCuPorts)}");
-
-        // Filter out known non-serial devices (Bluetooth, debug console, audio devices)
-        string[] excludePatterns = new[] { "Bluetooth", "debug-console", "wlan", "JBL", "Shokz", "AirPods", "Beats" };
-        foreach (string port in allCuPorts)
-        {
-            bool excluded = false;
-            foreach (string exclude in excludePatterns)
-            {
-                if (port.IndexOf(exclude, StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    excluded = true;
-                    break;
-                }
-            }
-            if (!excluded)
-            {
-                Debug.Log($"[SerialPortUtility] Fallback selected port: {port}");
-                return port;
-            }
-        }
-
-        Debug.LogWarning("[SerialPortUtility] No serial device found in /dev/");
+        Debug.LogWarning("[SerialPortUtility] No USB serial device found in /dev/");
         return "";
     }
 

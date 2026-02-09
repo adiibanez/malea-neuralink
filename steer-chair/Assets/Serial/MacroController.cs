@@ -37,6 +37,8 @@ public class MacroController : MonoBehaviour
     private MacroConfig _config;
     private Coroutine _currentMacro;
     private bool _isExecuting;
+    private string _currentMacroLabel = "";
+    private string _lastCommandSent = "";
 
     public bool IsExecuting => _isExecuting;
     public MacroConfig Config => _config;
@@ -256,10 +258,25 @@ public class MacroController : MonoBehaviour
     /// </summary>
     public void SendRawCommand(string cmd)
     {
-        // Re-acquire shared serial reference in case it was reconnected
+        _lastCommandSent = cmd;
+
+        // Use thread-safe write through JoystickController when sharing its port
+        // to prevent command interleaving with the background SendLoop
         if (_usingSharedSerial && sharedSerialSource != null)
         {
-            _serialPort = sharedSerialSource.SharedSerialPort;
+            bool sent = sharedSerialSource.SharedWrite(cmd);
+            if (sent)
+            {
+                if (logCommands)
+                    Debug.Log($"[MacroController] Sent: {cmd}");
+                OnCommandSent?.Invoke(cmd);
+            }
+            else if (logCommands)
+            {
+                Debug.Log($"[MacroController] SharedWrite failed (no serial): {cmd}");
+                OnCommandSent?.Invoke(cmd);
+            }
+            return;
         }
 
         if (_serialPort != null && _serialPort.IsOpen)
@@ -291,6 +308,7 @@ public class MacroController : MonoBehaviour
     private IEnumerator ExecuteMacroCoroutine(string id, string label, string macro)
     {
         _isExecuting = true;
+        _currentMacroLabel = label;
         OnMacroStarted?.Invoke(id, label);
 
         if (logCommands)
@@ -321,6 +339,7 @@ public class MacroController : MonoBehaviour
         }
 
         _isExecuting = false;
+        _currentMacroLabel = "";
         OnMacroCompleted?.Invoke(id, label);
 
         if (logCommands)
@@ -402,6 +421,11 @@ public class MacroController : MonoBehaviour
         }
 
         return commands;
+    }
+
+    public (bool isExecuting, string macroLabel, string lastCommand) GetDebugState()
+    {
+        return (_isExecuting, _currentMacroLabel, _lastCommandSent);
     }
 
     /// <summary>

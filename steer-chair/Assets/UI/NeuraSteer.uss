@@ -104,12 +104,147 @@
     opacity: 1;
 }
 
-/* Serial Status Container */
-#SerialStatusContainer {
+/* Control Buttons (left menu) */
+#ControlButtons {
     opacity: 0.3;
     transition: opacity 0.2s ease;
 }
 
-#SerialStatusContainer:hover {
+#ControlButtons:hover {
     opacity: 1;
+}
+
+.seat-arrow-row {
+    flex-direction: row;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.seat-arrow-btn {
+    width: 54px;
+    height: 54px;
+    font-size: 20px;
+    -unity-font-style: bold;
+    margin-left: 2px;
+    margin-right: 2px;
+    padding: 0;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+    border-bottom-left-radius: 6px;
+}
+
+.seat-arrow-btn.seat-arrow-btn-active {
+    background-color: rgb(76, 175, 80);
+    color: rgb(255, 255, 255);
+}
+
+.seat-arrow-btn.seat-arrow-btn-active:hover {
+    background-color: rgb(76, 175, 80);
+    color: rgb(255, 255, 255);
+}
+
+.seat-arrow-btn.seat-arrow-btn-active:active {
+    background-color: rgb(56, 142, 60);
+    color: rgb(255, 255, 255);
+}
+
+/* Relay Toggle Buttons */
+.relay-toggle-btn {
+    transition: background-color 0.15s ease;
+}
+
+.relay-toggle-active {
+    background-color: rgb(76, 175, 80);
+    color: rgb(255, 255, 255);
+}
+
+.debug-relay-btn {
+    font-size: 12px;
+    padding: 4px 8px;
+    margin-bottom: 4px;
+    background-color: rgba(80, 80, 80, 0.9);
+    color: rgb(200, 200, 200);
+}
+
+/* Debug Panel */
+.debug-panel {
+    position: absolute;
+    bottom: 0;
+    left: 160px;
+    right: 160px;
+    flex-direction: column;
+    align-items: center;
+}
+
+.debug-panel-bar {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding-bottom: 2px;
+}
+
+.debug-bar-status {
+    flex-direction: row;
+    align-items: center;
+    background-color: rgba(40, 40, 40, 0.7);
+    padding: 4px 10px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    margin-right: 0;
+}
+
+.debug-bar-status-label {
+    color: rgb(200, 200, 200);
+    font-size: 11px;
+    margin-left: 6px;
+}
+
+.debug-toggle-btn {
+    font-size: 13px;
+    padding-left: 24px;
+    padding-right: 24px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    background-color: rgba(40, 40, 40, 0.7);
+    color: rgb(200, 200, 200);
+    border-top-left-radius: 0;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.debug-toggle-btn:hover {
+    background-color: rgba(60, 60, 60, 0.85);
+}
+
+.debug-panel-content {
+    flex-direction: row;
+    background-color: rgba(20, 20, 20, 0.85);
+    padding: 8px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    width: 100%;
+    justify-content: space-around;
+}
+
+.debug-col {
+    flex-grow: 1;
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+.debug-col-header {
+    color: rgb(130, 180, 255);
+    font-size: 12px;
+    -unity-font-style: bold;
+    margin-bottom: 4px;
+}
+
+.debug-label {
+    color: rgb(200, 200, 200);
+    font-size: 11px;
+    margin-bottom: 2px;
 }

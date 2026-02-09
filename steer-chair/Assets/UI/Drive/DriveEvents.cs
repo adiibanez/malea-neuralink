@@ -20,6 +20,12 @@ public class DriveEvents : MonoBehaviour
         DriveUIElementNames.MouseJoystick,
     };
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    static void ForceWindowed()
+    {
+        Screen.fullScreenMode = FullScreenMode.Windowed;
+    }
+
     public enum DriveState
     {
         Stopped,
@@ -31,6 +37,8 @@ public class DriveEvents : MonoBehaviour
     {
         MouseJoystick
     }
+
+    public DriveState CurrentDriveState => _currentDriveState;
 
     // This should be improved and encapsulated
     public const float ReadyTimeout = 3f;
@@ -49,6 +57,12 @@ public class DriveEvents : MonoBehaviour
 
     [Header("Serial Status")]
     [SerializeField] private SerialStatusIndicator? serialStatusIndicator;
+
+    [Header("Seat Arrow")]
+    [SerializeField] private SeatArrowController? seatArrowController;
+
+    [Header("Debug Panel")]
+    [SerializeField] private DebugPanelController? debugPanelController;
 
     private Dictionary<string, Button> _fullButtonList;
     private List<Button> _driveOperationButtons;
@@ -101,10 +115,32 @@ public class DriveEvents : MonoBehaviour
             Debug.Log("[DriveEvents] Created SerialStatusIndicator automatically");
         }
 
+        // Auto-find or create SeatArrowController
+        if (seatArrowController == null)
+        {
+            seatArrowController = GetComponent<SeatArrowController>();
+        }
+        if (seatArrowController == null)
+        {
+            seatArrowController = gameObject.AddComponent<SeatArrowController>();
+            Debug.Log("[DriveEvents] Created SeatArrowController automatically");
+        }
+
+        // Auto-find or create DebugPanelController
+        if (debugPanelController == null)
+        {
+            debugPanelController = GetComponent<DebugPanelController>();
+        }
+        if (debugPanelController == null)
+        {
+            debugPanelController = gameObject.AddComponent<DebugPanelController>();
+            Debug.Log("[DriveEvents] Created DebugPanelController automatically");
+        }
+
         VisualElement root = GetComponent<UIDocument>().rootVisualElement;
 
-        // Get All Buttons
-        _fullButtonList ??= root
+        // Get All Buttons (always refresh - UIDocument may recreate the tree on re-enable)
+        _fullButtonList = root
             .Query<Button>()
             .ToList()
             .ToDictionary(b => b.name);
@@ -113,7 +149,7 @@ public class DriveEvents : MonoBehaviour
         _mouseJoystick = root.Q<MouseJoystick>(DriveUIElementNames.MouseJoystick);
         _mouseJoystick.RegisterCallback<JoystickMoveEvent>(OnJoystickMoved);
 
-        // Classify Buttons and setup Callbacks
+        // Classify Buttons and setup Callbacks (always refresh)
         _driveOperationButtons = _fullButtonList
             .Where(b => !_driveOperationUIElements.Contains(b.Key))
             .Select(b => b.Value)
@@ -130,7 +166,7 @@ public class DriveEvents : MonoBehaviour
                     b.RegisterCallback<ClickEvent>(OnDriveStart);
                     break;
                 case DriveUIElementNames.StopBtn:
-                    _stopBtn ??= new HoverActivateButton(b);
+                    _stopBtn = new HoverActivateButton(b);
                     b.RegisterCallback<ClickEvent>(OnDriveStop);
                     break;
                 case DriveUIElementNames.QuitBtn:
@@ -141,6 +177,9 @@ public class DriveEvents : MonoBehaviour
                     break;
             }
         }
+
+        // Set initial button state to match Stopped state
+        OnDriveStop(null);
     }
 
     public void OnDisable()
@@ -193,9 +232,10 @@ public class DriveEvents : MonoBehaviour
                 break;
             case DriveState.Driving:
                 // Any mouse click Terminates the DriveMode
-                if (Mouse.current.leftButton.wasPressedThisFrame
+                if (Mouse.current != null &&
+                    (Mouse.current.leftButton.wasPressedThisFrame
                     || Mouse.current.rightButton.wasPressedThisFrame
-                    || Mouse.current.middleButton.wasPressedThisFrame)
+                    || Mouse.current.middleButton.wasPressedThisFrame))
                 {
                     OnDriveStop(null);
                     return;
@@ -207,13 +247,6 @@ public class DriveEvents : MonoBehaviour
                     return;
                 }
                 break;
-        }
-        if (_currentDriveState == DriveState.Driving &&
-            (Mouse.current.leftButton.wasPressedThisFrame
-            || Mouse.current.rightButton.wasPressedThisFrame
-            || Mouse.current.middleButton.wasPressedThisFrame))
-        {
-            OnDriveStop(null);
         }
     }
 
@@ -253,6 +286,12 @@ public class DriveEvents : MonoBehaviour
             rightMenuButtons.SetAllButtonsEnabled(false);
         }
 
+        // Disable seat arrow buttons during driving
+        if (seatArrowController != null)
+        {
+            seatArrowController.SetAllButtonsEnabled(false);
+        }
+
         _currentDriveState = DriveState.Driving;
         _lastStateChangedAt = Time.time;
     }
@@ -285,6 +324,12 @@ public class DriveEvents : MonoBehaviour
         if (rightMenuButtons != null)
         {
             rightMenuButtons.SetAllButtonsEnabled(true);
+        }
+
+        // Enable seat arrow buttons
+        if (seatArrowController != null)
+        {
+            seatArrowController.SetAllButtonsEnabled(true);
         }
 
         _currentDriveState = DriveState.Stopped;

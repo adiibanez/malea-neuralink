@@ -23,10 +23,7 @@ public class RightMenuButtons : MonoBehaviour
 
     [Header("Audio")]
     [SerializeField] private AudioSource audioSource;
-    [SerializeField] private AudioClip excuseMeClip;
-    [SerializeField] private AudioClip noClip;
-    [SerializeField] private AudioClip thankYouClip;
-    [SerializeField] private AudioClip yesClip;
+    [SerializeField] private string audioResourcePath = "Audio/Eoin";
 
     [Header("Macro Controller")]
     [SerializeField] private MacroController macroController;
@@ -40,7 +37,6 @@ public class RightMenuButtons : MonoBehaviour
     private Dictionary<string, Coroutine> _activeCoroutines = new Dictionary<string, Coroutine>();
     private Dictionary<string, AudioClip> _audioClips = new Dictionary<string, AudioClip>();
 
-    private static readonly string[] AudioButtons = { "AudioBtn_excuse_me", "AudioBtn_no", "AudioBtn_thank_you", "AudioBtn_yes" };
     private static readonly string[] ControlButtons = { "ModeBtn", "ProfileBtn", "PowerOnOffBtn" };
 
     void Awake()
@@ -79,25 +75,17 @@ public class RightMenuButtons : MonoBehaviour
 
     private void LoadAudioClips()
     {
-        // Use serialized fields (assigned in Inspector) as the primary source
-        if (excuseMeClip != null)
-            _audioClips["excuse_me"] = excuseMeClip;
-        if (noClip != null)
-            _audioClips["no"] = noClip;
-        if (thankYouClip != null)
-            _audioClips["thank_you"] = thankYouClip;
-        if (yesClip != null)
-            _audioClips["yes"] = yesClip;
-
-        // Log which clips are loaded
-        foreach (var kvp in _audioClips)
+        // Auto-load all clips from Resources folder by filename
+        var clips = Resources.LoadAll<AudioClip>(audioResourcePath);
+        foreach (var clip in clips)
         {
-            Debug.Log($"[RightMenuButtons] Audio clip ready: {kvp.Key}");
+            _audioClips[clip.name] = clip;
+            Debug.Log($"[RightMenuButtons] Audio clip loaded: {clip.name}");
         }
 
         if (_audioClips.Count == 0)
         {
-            Debug.LogWarning("[RightMenuButtons] No audio clips assigned. Please assign clips in the Inspector.");
+            Debug.LogWarning($"[RightMenuButtons] No audio clips found in Resources/{audioResourcePath}");
         }
     }
 
@@ -113,10 +101,12 @@ public class RightMenuButtons : MonoBehaviour
         _root = GetComponent<UIDocument>().rootVisualElement;
         if (_root == null) yield break;
 
-        // Setup audio buttons
-        foreach (var btnName in AudioButtons)
+        // Setup audio buttons (auto-discover all AudioBtn_* buttons)
+        var allButtons = _root.Query<Button>().ToList();
+        foreach (var btn in allButtons)
         {
-            SetupButton(btnName);
+            if (btn.name != null && btn.name.StartsWith("AudioBtn_"))
+                SetupButton(btn.name);
         }
 
         // Setup control buttons
@@ -192,17 +182,17 @@ public class RightMenuButtons : MonoBehaviour
         // Handle control buttons
         else if (buttonName == "ModeBtn")
         {
-            // Toggle mode and activate relay 5 for 5 seconds
-            modeIndicator?.ToggleMode();
-            HandleRelayButton(buttonName, 5, 5.0f); // Relay 5 for 5 seconds
+            // Toggle mode AFTER relay 5 finishes (5 seconds)
+            HandleRelayButton(buttonName, 5, 5.0f, () => modeIndicator?.ToggleMode());
         }
         else if (buttonName == "ProfileBtn")
         {
-            HandleRelayButton(buttonName, 5, 1.0f); // Relay 5 for 1 second
+            HandleRelayButton(buttonName, 5, 1.0f);
         }
         else if (buttonName == "PowerOnOffBtn")
         {
-            HandleRelayButton(buttonName, 6, 6.0f); // Relay 6 for 6 seconds
+            // Reset to driving mode AFTER relay 6 finishes (6 seconds)
+            HandleRelayButton(buttonName, 6, 6.0f, () => modeIndicator?.SetMode(ModeIndicator.OperatingMode.Driving));
         }
     }
 
@@ -219,7 +209,7 @@ public class RightMenuButtons : MonoBehaviour
         }
     }
 
-    private void HandleRelayButton(string buttonName, int relayNumber, float duration)
+    private void HandleRelayButton(string buttonName, int relayNumber, float duration, System.Action onComplete = null)
     {
         // Stop existing coroutine if any
         if (_activeCoroutines.TryGetValue(buttonName, out Coroutine existing) && existing != null)
@@ -228,10 +218,10 @@ public class RightMenuButtons : MonoBehaviour
         }
 
         // Start relay activation coroutine
-        _activeCoroutines[buttonName] = StartCoroutine(RelayActivationCoroutine(buttonName, relayNumber, duration));
+        _activeCoroutines[buttonName] = StartCoroutine(RelayActivationCoroutine(buttonName, relayNumber, duration, onComplete));
     }
 
-    private IEnumerator RelayActivationCoroutine(string buttonName, int relayNumber, float duration)
+    private IEnumerator RelayActivationCoroutine(string buttonName, int relayNumber, float duration, System.Action onComplete = null)
     {
         if (!_buttons.TryGetValue(buttonName, out Button button)) yield break;
         if (!_originalColors.TryGetValue(buttonName, out Color original)) yield break;
@@ -240,31 +230,34 @@ public class RightMenuButtons : MonoBehaviour
         button.style.backgroundColor = new StyleColor(activeColor);
         button.SetEnabled(false);
 
-        // Activate relay (send full forward command to robot/relay number)
-        // S63 = full speed forward, D31 = neutral direction
-        if (macroController != null)
+        // Hardware is 0-indexed, so relay 5 = index 4
+        int relayIndex = relayNumber - 1;
+        string activateCmd = $"S31D31R{relayIndex}";
+
+        Debug.Log($"[RightMenuButtons] Relay {relayNumber} ON for {duration}s: {activateCmd}");
+
+        // Send relay command repeatedly to keep it active
+        float elapsed = 0f;
+        float sendInterval = 0.1f;
+        while (elapsed < duration)
         {
-            string activateMacro = $"S63D31R{relayNumber}";
-            macroController.SendRawCommand(activateMacro);
-            Debug.Log($"[RightMenuButtons] Activated relay {relayNumber}: {activateMacro}");
+            if (macroController != null)
+                macroController.SendRawCommand(activateCmd);
+
+            yield return new WaitForSeconds(sendInterval);
+            elapsed += sendInterval;
         }
 
-        // Wait for duration
-        yield return new WaitForSeconds(duration);
-
-        // Deactivate relay (send neutral command)
-        if (macroController != null)
-        {
-            string deactivateMacro = $"S31D31R{relayNumber}";
-            macroController.SendRawCommand(deactivateMacro);
-            Debug.Log($"[RightMenuButtons] Deactivated relay {relayNumber}: {deactivateMacro}");
-        }
+        // Relay deactivates by simply stopping the sends
+        Debug.Log($"[RightMenuButtons] Relay {relayNumber} OFF (stopped sending)");
 
         // Restore original color and enable button
         button.style.backgroundColor = new StyleColor(original);
         button.SetEnabled(true);
 
         _activeCoroutines.Remove(buttonName);
+
+        onComplete?.Invoke();
     }
 
     private void HandleMomentaryButton(string buttonName)
@@ -308,7 +301,7 @@ public class RightMenuButtons : MonoBehaviour
     }
 
     /// <summary>
-    /// Reloads audio clips from serialized fields.
+    /// Reloads audio clips from Resources.
     /// </summary>
     public void ReloadAudioClips()
     {
