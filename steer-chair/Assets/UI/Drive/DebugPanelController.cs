@@ -225,16 +225,15 @@ public class DebugPanelController : MonoBehaviour
         string cmd = $"S31D31R{relayIndex}";
         Debug.Log($"[DebugPanelController] Relay {relayNumber} ON: {cmd}");
 
-        _joystickController?.SetOverride(cmd, $"DebugRelay{relayNumber}");
-
         bool isActive = relayNumber == 5 ? _relay5Active : _relay6Active;
         while (isActive)
         {
+            _joystickController?.SharedWrite(cmd);
             yield return new WaitForSeconds(0.1f);
             isActive = relayNumber == 5 ? _relay5Active : _relay6Active;
         }
 
-        _joystickController?.ClearOverride();
+        Debug.Log($"[DebugPanelController] Relay {relayNumber} OFF (stopped sending)");
     }
 
     private void StopRelay(int relayNumber, ref Coroutine coroutine, Button btn)
@@ -245,16 +244,13 @@ public class DebugPanelController : MonoBehaviour
             coroutine = null;
         }
 
-        _joystickController?.ClearOverride();
-        Debug.Log($"[DebugPanelController] Relay {relayNumber} OFF (override cleared)");
-
+        Debug.Log($"[DebugPanelController] Relay {relayNumber} OFF (stopped sending)");
         btn?.RemoveFromClassList("relay-toggle-active");
     }
 
     private void DeactivateRelay(int relayNumber)
     {
-        _joystickController?.ClearOverride();
-        Debug.Log($"[DebugPanelController] Relay {relayNumber} OFF (override cleared)");
+        Debug.Log($"[DebugPanelController] Relay {relayNumber} deactivated");
     }
 
     private void UpdateBarStatus()

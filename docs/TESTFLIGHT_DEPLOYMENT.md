@@ -193,6 +193,40 @@ The entitlements file (`steer-chair/neura-steer.entitlements`) enables:
 | `cs.allow-unsigned-executable-memory` | Required for Unity IL2CPP runtime |
 | `cs.disable-library-validation` | Required for Unity plugin loading |
 
+## Log Files
+
+### Audit Log
+
+The app writes a CSV audit log of all serial commands, state changes, relay activations, and safety events. Location:
+
+**Normal (unsigned) build:**
+```
+~/Library/Application Support/Gammaludic/neura-steer/AuditLogs/audit_<timestamp>.csv
+```
+
+**Sandboxed (TestFlight) build:**
+```
+~/Library/Containers/com.gammaludic.neurasteer/Data/Library/Application Support/Gammaludic/neura-steer/AuditLogs/audit_<timestamp>.csv
+```
+
+CSV columns: `Timestamp, Category, Message, Command, Success`
+
+Categories: `SerialCommand`, `Override`, `Connection`, `StateChange`, `Relay`, `Macro`, `Application`, `Safety`
+
+A new file is created per session. No additional entitlement is needed — `Application.persistentDataPath` is inside the sandbox container.
+
+### Unity Player Log
+
+**Normal build:**
+```
+~/Library/Logs/Gammaludic/neura-steer/Player.log
+```
+
+**Sandboxed (TestFlight) build:**
+```
+~/Library/Containers/com.gammaludic.neurasteer/Data/Library/Logs/Gammaludic/neura-steer/Player.log
+```
+
 ## Troubleshooting
 
 ### App crashes on launch after signing

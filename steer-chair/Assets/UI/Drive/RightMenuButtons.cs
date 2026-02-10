@@ -120,9 +120,6 @@ public class RightMenuButtons : MonoBehaviour
 
     void OnDisable()
     {
-        // Clear any active override
-        joystickController?.ClearOverride();
-
         // Stop all coroutines and restore colors
         foreach (var kvp in _activeCoroutines)
         {
@@ -240,14 +237,17 @@ public class RightMenuButtons : MonoBehaviour
         Debug.Log($"[RightMenuButtons] Relay {relayNumber} ON for {duration}s: {activateCmd}");
         AuditLog.Log(AuditLog.Category.Relay, $"Relay {relayNumber} ON for {duration}s ({buttonName})", activateCmd);
 
-        // Set override — background thread sends this command until cleared
-        joystickController?.SetOverride(activateCmd, $"Relay{relayNumber}:{buttonName}");
+        // Send relay command every 100ms for the duration.
+        // This interleaves with SendLoop's R8 heartbeat on the background thread.
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            joystickController?.SharedWrite(activateCmd);
+            yield return new WaitForSeconds(0.1f);
+            elapsed += 0.1f;
+        }
 
-        yield return new WaitForSeconds(duration);
-
-        // Clear override — background thread resumes joystick commands
-        joystickController?.ClearOverride();
-        Debug.Log($"[RightMenuButtons] Relay {relayNumber} OFF (override cleared)");
+        Debug.Log($"[RightMenuButtons] Relay {relayNumber} OFF (stopped sending)");
         AuditLog.Log(AuditLog.Category.Relay, $"Relay {relayNumber} OFF ({buttonName})", activateCmd);
 
         // Restore original color and enable button

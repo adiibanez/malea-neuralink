@@ -374,6 +374,16 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
     }
 
     /// <summary>
+    /// Public write method for external callers (e.g., relay keep-alive loops)
+    /// that need to send commands interleaved with the SendLoop's R8 heartbeat.
+    /// Thread-safe — protected by serialLock.
+    /// </summary>
+    public bool SharedWrite(string data)
+    {
+        return SafeSerialWrite(data);
+    }
+
+    /// <summary>
     /// Safely writes to serial port with error tracking.
     /// </summary>
     /// <returns>True if write succeeded, false otherwise.</returns>
