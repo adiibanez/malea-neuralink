@@ -1,0 +1,144 @@
+name: Build & Upload to TestFlight
+
+on:
+  push:
+    tags:
+      - 'tf-v*'
+
+jobs:
+  build-sign-upload:
+    name: Build, Sign & Upload to TestFlight
+    runs-on: macos-14
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Set build number from git history
+        run: |
+          BUILD_NUMBER=$(git rev-list --count HEAD)
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
+          # Patch ProjectSettings.asset with the computed build number
+          sed -i '' "s/Standalone: [0-9]*/Standalone: $BUILD_NUMBER/" \
+            steer-chair/ProjectSettings/ProjectSettings.asset
+
+      - name: Cache Library
+        uses: actions/cache@v4
+        with:
+          path: steer-chair/Library
+          key: Library-StandaloneOSX-${{ hashFiles('steer-chair/Assets/**', 'steer-chair/Packages/**', 'steer-chair/ProjectSettings/**') }}
+          restore-keys: |
+            Library-StandaloneOSX-
+            Library-
+
+      - name: Build Unity Project
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: steer-chair
+          targetPlatform: StandaloneOSX
+          buildName: neura-steer
+          buildsPath: build
+          versioning: Tag
+
+      - name: Import signing certificates
+        env:
+          P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          P12_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          # Create a temporary keychain
+          KEYCHAIN_PATH="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 16)"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Import certificate
+          P12_FILE="$RUNNER_TEMP/certs.p12"
+          echo "$P12_BASE64" | base64 --decode > "$P12_FILE"
+          security import "$P12_FILE" \
+            -k "$KEYCHAIN_PATH" \
+            -P "$P12_PASSWORD" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/productbuild
+
+          # Allow codesign to access the keychain
+          security set-key-partition-list -S apple-tool:,apple: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Add to search list
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+
+      - name: Install provisioning profile
+        env:
+          PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+        run: |
+          PROFILE_FILE="$RUNNER_TEMP/embedded.provisionprofile"
+          echo "$PROFILE_BASE64" | base64 --decode > "$PROFILE_FILE"
+          echo "PROFILE_FILE=$PROFILE_FILE" >> "$GITHUB_ENV"
+
+      - name: Sign application
+        run: |
+          APP="build/StandaloneOSX/neura-steer.app"
+          ENT="steer-chair/neura-steer.entitlements"
+          APP_CERT="3rd Party Mac Developer Application: Gammaludic (7D9Z44N844)"
+
+          # Embed provisioning profile
+          cp "$PROFILE_FILE" "$APP/Contents/embedded.provisionprofile"
+
+          # Sign nested frameworks and plugins first
+          find "$APP/Contents/Frameworks" -name "*.dylib" -exec \
+            codesign --force --sign "$APP_CERT" --entitlements "$ENT" \
+            --timestamp --options runtime {} \;
+
+          find "$APP/Contents/Plugins" -name "*.bundle" -exec \
+            codesign --force --sign "$APP_CERT" --entitlements "$ENT" \
+            --timestamp --options runtime {} \;
+
+          # Sign the main app bundle
+          codesign --force --deep --sign "$APP_CERT" \
+            --entitlements "$ENT" --timestamp --options runtime "$APP"
+
+          # Verify signature
+          codesign --verify --verbose=4 "$APP"
+
+      - name: Package as .pkg
+        run: |
+          APP="build/StandaloneOSX/neura-steer.app"
+          PKG_CERT="3rd Party Mac Developer Installer: Gammaludic (7D9Z44N844)"
+
+          productbuild --component "$APP" /Applications \
+            --sign "$PKG_CERT" "neura-steer.pkg"
+
+      - name: Upload to App Store Connect
+        env:
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY }}
+        run: |
+          # Write the API key to the expected location
+          mkdir -p ~/private_keys
+          echo "$API_KEY_BASE64" | base64 --decode > ~/private_keys/AuthKey_${API_KEY_ID}.p8
+
+          xcrun altool --upload-app \
+            --file "neura-steer.pkg" \
+            --type macos \
+            --apiKey "$API_KEY_ID" \
+            --apiIssuer "$API_ISSUER_ID"
+
+      - name: Cleanup keychain
+        if: always()
+        run: |
+          if [ -f "$KEYCHAIN_PATH" ]; then
+            security delete-keychain "$KEYCHAIN_PATH"
+          fi

@@ -25,8 +25,8 @@ public class RightMenuButtons : MonoBehaviour
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private string audioResourcePath = "Audio/Eoin";
 
-    [Header("Macro Controller")]
-    [SerializeField] private MacroController macroController;
+    [Header("Serial Controller")]
+    [SerializeField] private JoystickController joystickController;
 
     [Header("Mode Indicator")]
     [SerializeField] private ModeIndicator modeIndicator;
@@ -52,10 +52,10 @@ public class RightMenuButtons : MonoBehaviour
             audioSource.playOnAwake = false;
         }
 
-        // Auto-find MacroController
-        if (macroController == null)
+        // Auto-find JoystickController
+        if (joystickController == null)
         {
-            macroController = FindFirstObjectByType<MacroController>();
+            joystickController = FindFirstObjectByType<JoystickController>();
         }
 
         // Auto-find or create ModeIndicator
@@ -120,6 +120,9 @@ public class RightMenuButtons : MonoBehaviour
 
     void OnDisable()
     {
+        // Clear any active override
+        joystickController?.ClearOverride();
+
         // Stop all coroutines and restore colors
         foreach (var kvp in _activeCoroutines)
         {
@@ -235,21 +238,17 @@ public class RightMenuButtons : MonoBehaviour
         string activateCmd = $"S31D31R{relayIndex}";
 
         Debug.Log($"[RightMenuButtons] Relay {relayNumber} ON for {duration}s: {activateCmd}");
+        AuditLog.Log(AuditLog.Category.Relay, $"Relay {relayNumber} ON for {duration}s ({buttonName})", activateCmd);
 
-        // Send relay command repeatedly to keep it active
-        float elapsed = 0f;
-        float sendInterval = 0.1f;
-        while (elapsed < duration)
-        {
-            if (macroController != null)
-                macroController.SendRawCommand(activateCmd);
+        // Set override — background thread sends this command until cleared
+        joystickController?.SetOverride(activateCmd, $"Relay{relayNumber}:{buttonName}");
 
-            yield return new WaitForSeconds(sendInterval);
-            elapsed += sendInterval;
-        }
+        yield return new WaitForSeconds(duration);
 
-        // Relay deactivates by simply stopping the sends
-        Debug.Log($"[RightMenuButtons] Relay {relayNumber} OFF (stopped sending)");
+        // Clear override — background thread resumes joystick commands
+        joystickController?.ClearOverride();
+        Debug.Log($"[RightMenuButtons] Relay {relayNumber} OFF (override cleared)");
+        AuditLog.Log(AuditLog.Category.Relay, $"Relay {relayNumber} OFF ({buttonName})", activateCmd);
 
         // Restore original color and enable button
         button.style.backgroundColor = new StyleColor(original);

@@ -24,6 +24,10 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
     [SerializeField] private float updateInterval = 0.12f;
     [SerializeField] private float idleTimeout = 0.3f;
 
+    [Header("Safety")]
+    [Tooltip("Max speed deviation from neutral (31). 0 = no limit.")]
+    [SerializeField] private int maxSpeedDelta = 0;
+
     [Header("Debug")]
     [SerializeField] private bool logCommands = true;
     [SerializeField] private bool logInput = false;
@@ -80,41 +84,74 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
     // Thread-safe input buffer
     private readonly object inputLock = new object();
 
-    /// <summary>
-    /// Exposes the serial port for sharing with other controllers (e.g., MacroController).
-    /// Note: The port may become null during reconnection. Callers should handle null gracefully.
-    /// </summary>
-#if UNITY_EDITOR
-    public SerialPort SharedSerialPort
-    {
-        get
-        {
-            lock (serialLock)
-            {
-                return ser;
-            }
-        }
-    }
-#else
-    public NativeSerialPort SharedSerialPort
-    {
-        get
-        {
-            lock (serialLock)
-            {
-                return ser;
-            }
-        }
-    }
-#endif
+    // Command override (protected by inputLock)
+    private bool overrideActive;
+    private string overrideCommand;
+    private string overrideSource;
 
     /// <summary>
     /// Returns true if serial port is currently connected and open.
     /// </summary>
     public bool IsConnected => IsSerialConnected();
 
+    /// <summary>
+    /// Returns true if a command override is currently active.
+    /// </summary>
+    public bool IsOverrideActive
+    {
+        get { lock (inputLock) { return overrideActive; } }
+    }
+
+    /// <summary>
+    /// Sets a command override. The background thread will send this command
+    /// instead of the joystick command until ClearOverride() is called.
+    /// Thread-safe — can be called from any thread.
+    /// </summary>
+    public void SetOverride(string command, string source = "")
+    {
+        if (!CommandValidator.TryParseCommand(command, out _, out _, out _, out string error))
+        {
+            Debug.LogWarning($"[JoystickController] Override REJECTED: '{command}' from '{source}': {error}");
+            AuditLog.Log(AuditLog.Category.Safety, $"Override rejected: {error}", command, false);
+            return;
+        }
+
+        lock (inputLock)
+        {
+            if (overrideActive && overrideSource != source)
+            {
+                Debug.LogWarning($"[JoystickController] Override replaced: '{overrideSource}' -> '{source}' cmd={command}");
+            }
+            overrideActive = true;
+            overrideCommand = command;
+            overrideSource = source;
+            Debug.Log($"[JoystickController] Override SET: {command} (source={source})");
+            AuditLog.Log(AuditLog.Category.Override, $"Override set from {source}", command);
+        }
+    }
+
+    /// <summary>
+    /// Clears the command override. The background thread resumes sending joystick commands.
+    /// </summary>
+    public void ClearOverride()
+    {
+        lock (inputLock)
+        {
+            if (overrideActive)
+            {
+                Debug.Log($"[JoystickController] Override CLEARED (was: {overrideCommand} source={overrideSource})");
+                AuditLog.Log(AuditLog.Category.Override, $"Override cleared (was {overrideSource})", overrideCommand);
+            }
+            overrideActive = false;
+            overrideCommand = null;
+            overrideSource = null;
+        }
+    }
+
     void Awake()
     {
+        AuditLog.Init();
+
         // Initialize stopwatch early so it's available if Move() is called before Start()
         stopwatch = Stopwatch.StartNew();
         lastInputTime = (float)stopwatch.Elapsed.TotalSeconds;
@@ -245,6 +282,7 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
                 reconnectAttempts = 0;
                 consecutiveErrors = 0;
                 Debug.Log($"[JoystickController] Serial connected on {serialPort}");
+                AuditLog.Log(AuditLog.Category.Connection, $"Connected on {serialPort}");
                 QueueConnectionNotification(true);
                 return true;
             }
@@ -257,6 +295,7 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
                     Debug.LogWarning($"[JoystickController] Inner exception: {e.InnerException.GetType().Name}: {e.InnerException.Message}");
                 }
                 Debug.LogWarning($"[JoystickController] Stack trace: {e.StackTrace}");
+                AuditLog.Log(AuditLog.Category.Connection, $"Connection failed: {e.GetType().Name}: {e.Message}", "", false);
                 QueueConnectionNotification(false);
                 return false;
             }
@@ -349,11 +388,13 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
             {
                 ser.Write(data);
                 consecutiveErrors = 0;
+                AuditLog.Log(AuditLog.Category.SerialCommand, "Sent", data);
                 return true;
             }
             catch (TimeoutException)
             {
                 consecutiveErrors++;
+                AuditLog.Log(AuditLog.Category.SerialCommand, $"Timeout (#{consecutiveErrors})", data, false);
                 if (consecutiveErrors >= ERRORS_BEFORE_RECONNECT)
                 {
                     Debug.LogWarning($"[JoystickController] {consecutiveErrors} consecutive timeouts, will attempt reconnect");
@@ -363,6 +404,7 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
             catch (Exception e)
             {
                 consecutiveErrors++;
+                AuditLog.Log(AuditLog.Category.SerialCommand, $"Write error: {e.Message}", data, false);
                 Debug.LogWarning($"[JoystickController] Serial write error: {e.Message}");
 
                 // Connection is likely broken, close it so reconnect can happen
@@ -374,21 +416,13 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
                 catch { }
                 ser = null;
 
+                AuditLog.Log(AuditLog.Category.Connection, $"Disconnected: {e.Message}", "", false);
                 QueueConnectionNotification(false);
                 return false;
             }
         }
     }
     
-    /// <summary>
-    /// Thread-safe write for external callers (e.g. MacroController) sharing this serial port.
-    /// Acquires the same lock as the background SendLoop to prevent command interleaving.
-    /// </summary>
-    public bool SharedWrite(string data)
-    {
-        return SafeSerialWrite(data);
-    }
-
     /// <summary>
     /// Background thread that continuously sends commands at the specified interval.
     /// </summary>
@@ -415,38 +449,55 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
 
                 int currentSpeed, currentDirection;
                 float currentLastInputTime;
+                bool currentOverrideActive;
+                string currentOverrideCommand;
 
                 lock (inputLock)
                 {
+                    currentOverrideActive = overrideActive;
+                    currentOverrideCommand = overrideCommand;
+
                     currentSpeed = speed;
                     currentDirection = direction;
                     currentLastInputTime = lastInputTime;
 
-                    // Check if idle timeout has been exceeded
-                    float timeSinceInput = now - currentLastInputTime;
-                    bool isIdle = timeSinceInput > idleTimeout;
-
-                    // Log when we have non-neutral values (before potential reset)
-                    if (currentSpeed != NEUTRAL || currentDirection != NEUTRAL)
+                    // Skip idle timeout when override is active
+                    if (!currentOverrideActive)
                     {
-                        Debug.Log($"[JoystickController] SendLoop READ: speed={currentSpeed} dir={currentDirection} " +
-                                  $"now={now:F3} lastInput={currentLastInputTime:F3} timeSinceInput={timeSinceInput:F3}s isIdle={isIdle}");
-                    }
+                        // Check if idle timeout has been exceeded
+                        float timeSinceInput = now - currentLastInputTime;
+                        bool isIdle = timeSinceInput > idleTimeout;
 
-                    if (isIdle)
-                    {
+                        // Log when we have non-neutral values (before potential reset)
                         if (currentSpeed != NEUTRAL || currentDirection != NEUTRAL)
                         {
-                            Debug.Log($"[JoystickController] IDLE RESET: timeSinceInput={timeSinceInput:F3}s > {idleTimeout}s, resetting from S{currentSpeed}D{currentDirection} to neutral");
+                            Debug.Log($"[JoystickController] SendLoop READ: speed={currentSpeed} dir={currentDirection} " +
+                                      $"now={now:F3} lastInput={currentLastInputTime:F3} timeSinceInput={timeSinceInput:F3}s isIdle={isIdle}");
                         }
-                        speed = NEUTRAL;
-                        direction = NEUTRAL;
-                        currentSpeed = NEUTRAL;
-                        currentDirection = NEUTRAL;
+
+                        if (isIdle)
+                        {
+                            if (currentSpeed != NEUTRAL || currentDirection != NEUTRAL)
+                            {
+                                Debug.Log($"[JoystickController] IDLE RESET: timeSinceInput={timeSinceInput:F3}s > {idleTimeout}s, resetting from S{currentSpeed}D{currentDirection} to neutral");
+                            }
+                            speed = NEUTRAL;
+                            direction = NEUTRAL;
+                            currentSpeed = NEUTRAL;
+                            currentDirection = NEUTRAL;
+                        }
                     }
                 }
 
-                string cmd = $"S{currentSpeed:D2}D{currentDirection:D2}R8";
+                // Apply speed limiter for non-override commands
+                if (!currentOverrideActive)
+                {
+                    currentSpeed = CommandValidator.ClampSpeed(currentSpeed, maxSpeedDelta);
+                }
+
+                string cmd = currentOverrideActive
+                    ? currentOverrideCommand
+                    : $"S{currentSpeed:D2}D{currentDirection:D2}R8";
 
                 float timeDiff = now - lastSendTime;
 
@@ -565,6 +616,13 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
     /// </summary>
     public void Close()
     {
+        ClearOverride();
+
+        // Safety: send STOP command before shutting down
+        string stopCmd = "S31D31R8";
+        bool stopSent = SafeSerialWrite(stopCmd);
+        AuditLog.Log(AuditLog.Category.Safety, "Stop command on Close()", stopCmd, stopSent);
+
         running = false;
 
         if (sendThread != null && sendThread.IsAlive)
@@ -584,6 +642,7 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
                 }
                 catch { }
                 ser = null;
+                AuditLog.Log(AuditLog.Category.Connection, "Serial connection closed");
                 Debug.Log("[JoystickController] Serial connection closed.");
             }
         }
@@ -607,7 +666,9 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
                 ConsecutiveErrors = consecutiveErrors,
                 TimeDiffMin = timeDiffMin ?? 0f,
                 TimeDiffMax = timeDiffMax,
-                LastCommand = lastCommand
+                LastCommand = lastCommand,
+                IsOverrideActive = overrideActive,
+                OverrideSource = overrideSource ?? ""
             };
         }
     }
@@ -620,6 +681,7 @@ public class JoystickController : MonoBehaviour, IMoveReceiver
     void OnApplicationQuit()
     {
         Close();
+        AuditLog.Shutdown();
     }
 }
 
@@ -637,4 +699,6 @@ public struct JoystickTelemetry
     public float TimeDiffMin;
     public float TimeDiffMax;
     public string LastCommand;
+    public bool IsOverrideActive;
+    public string OverrideSource;
 }

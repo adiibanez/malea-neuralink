@@ -265,6 +265,7 @@ public class DriveEvents : MonoBehaviour
 
         _currentDriveState = DriveState.Ready;
         _lastStateChangedAt = Time.time;
+        AuditLog.Log(AuditLog.Category.StateChange, "Drive state: Ready");
     }
 
     private void OnDriveStart(ClickEvent evnt)
@@ -294,6 +295,7 @@ public class DriveEvents : MonoBehaviour
 
         _currentDriveState = DriveState.Driving;
         _lastStateChangedAt = Time.time;
+        AuditLog.Log(AuditLog.Category.StateChange, "Drive state: Driving");
     }
 
     private void OnDriveStop(ClickEvent? evnt)
@@ -334,6 +336,7 @@ public class DriveEvents : MonoBehaviour
 
         _currentDriveState = DriveState.Stopped;
         _lastStateChangedAt = Time.time;
+        AuditLog.Log(AuditLog.Category.StateChange, "Drive state: Stopped");
 
         foreach(var t in _joystickTargets)
         {

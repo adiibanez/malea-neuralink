@@ -4,22 +4,18 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-#if UNITY_EDITOR
-using System.IO.Ports;
-#endif
-
 /// <summary>
 /// Handles macro/sequence execution for steering commands.
 /// Loads configuration from JSON and provides methods to execute command sequences.
 /// Macro format: "S[speed]D[direction]R[robot],P[pauseMs],..."
 /// Example: "S50D31R1,P500,S31D31R1" - speed 50 dir 31 robot 1, wait 500ms, then neutral
+///
+/// Does not write to serial directly — uses JoystickController.SetOverride/ClearOverride
+/// so the background thread is the sole serial writer.
 /// </summary>
 public class MacroController : MonoBehaviour
 {
-    [Header("Serial Settings")]
-    [SerializeField] private string serialPort = "/dev/cu.usbmodem11101";
-    [SerializeField] private int baudRate = 115200;
-    [Tooltip("If set, MacroController will use JoystickController's serial port instead of opening its own")]
+    [Tooltip("JoystickController used for SetOverride/ClearOverride serial commands")]
     [SerializeField] private JoystickController sharedSerialSource;
 
     [Header("Configuration")]
@@ -28,12 +24,6 @@ public class MacroController : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool logCommands = true;
 
-#if UNITY_EDITOR
-    private SerialPort _serialPort;
-#else
-    private NativeSerialPort _serialPort;
-#endif
-    private bool _usingSharedSerial = false;
     private MacroConfig _config;
     private Coroutine _currentMacro;
     private bool _isExecuting;
@@ -53,7 +43,15 @@ public class MacroController : MonoBehaviour
 
     void Start()
     {
-        ConnectSerial();
+        if (sharedSerialSource == null)
+        {
+            sharedSerialSource = FindFirstObjectByType<JoystickController>();
+        }
+
+        if (sharedSerialSource == null)
+        {
+            Debug.LogWarning("[MacroController] No JoystickController found — macro commands will be no-ops");
+        }
     }
 
     /// <summary>
@@ -115,59 +113,6 @@ public class MacroController : MonoBehaviour
     }
 
     /// <summary>
-    /// Connects to the serial port for sending commands.
-    /// Uses shared serial from JoystickController if available to avoid port conflicts.
-    /// </summary>
-    private void ConnectSerial()
-    {
-        // Try to use shared serial port from JoystickController first
-        if (sharedSerialSource == null)
-        {
-            sharedSerialSource = FindFirstObjectByType<JoystickController>();
-        }
-
-        if (sharedSerialSource != null && sharedSerialSource.SharedSerialPort != null)
-        {
-            _serialPort = sharedSerialSource.SharedSerialPort;
-            _usingSharedSerial = true;
-            Debug.Log("[MacroController] Using shared serial port from JoystickController");
-            return;
-        }
-
-        // Fall back to opening our own connection
-        // Auto-detect serial port
-        string detectedPort = SerialPortUtility.GetSerialPort();
-        if (!string.IsNullOrEmpty(detectedPort))
-        {
-            Debug.Log($"[MacroController] Auto-detected serial port: {detectedPort}");
-            serialPort = detectedPort;
-        }
-
-        try
-        {
-#if UNITY_EDITOR
-            _serialPort = new SerialPort(serialPort, baudRate)
-            {
-                ReadTimeout = 1000,
-                WriteTimeout = 1000,
-                DtrEnable = true,
-                RtsEnable = true
-            };
-            _serialPort.Open();
-#else
-            _serialPort = new NativeSerialPort(serialPort, baudRate);
-#endif
-            _usingSharedSerial = false;
-            Debug.Log($"[MacroController] Serial connected on {serialPort}");
-        }
-        catch (Exception e)
-        {
-            _serialPort = null;
-            Debug.LogWarning($"[MacroController] Serial connection failed: {e.Message}");
-        }
-    }
-
-    /// <summary>
     /// Executes a macro string with an identifier.
     /// </summary>
     public void ExecuteMacro(string id, string label, string macro)
@@ -214,7 +159,7 @@ public class MacroController : MonoBehaviour
     }
 
     /// <summary>
-    /// Stops the currently executing macro and sends neutral command.
+    /// Stops the currently executing macro and clears the serial override.
     /// </summary>
     public void StopCurrentMacro()
     {
@@ -225,81 +170,7 @@ public class MacroController : MonoBehaviour
         }
         _isExecuting = false;
 
-        // Send neutral command
-        SendNeutral();
-    }
-
-    /// <summary>
-    /// Sends the neutral (stop) command.
-    /// </summary>
-    public void SendNeutral()
-    {
-        int neutral = _config?.settings?.neutralSpeed ?? 31;
-        int robot = _config?.settings?.defaultRobot ?? 8;
-        SendCommand(neutral, neutral, robot);
-    }
-
-    /// <summary>
-    /// Sends a single steering command.
-    /// </summary>
-    public void SendCommand(int speed, int direction, int robot = 8)
-    {
-        speed = Mathf.Clamp(speed, 0, 63);
-        direction = Mathf.Clamp(direction, 0, 63);
-        robot = Mathf.Clamp(robot, 1, 8);
-
-        string cmd = $"S{speed:D2}D{direction:D2}R{robot}";
-        SendRawCommand(cmd);
-    }
-
-    /// <summary>
-    /// Sends a raw command string to serial.
-    /// Handles shared serial that may be null during reconnection.
-    /// </summary>
-    public void SendRawCommand(string cmd)
-    {
-        _lastCommandSent = cmd;
-
-        // Use thread-safe write through JoystickController when sharing its port
-        // to prevent command interleaving with the background SendLoop
-        if (_usingSharedSerial && sharedSerialSource != null)
-        {
-            bool sent = sharedSerialSource.SharedWrite(cmd);
-            if (sent)
-            {
-                if (logCommands)
-                    Debug.Log($"[MacroController] Sent: {cmd}");
-                OnCommandSent?.Invoke(cmd);
-            }
-            else if (logCommands)
-            {
-                Debug.Log($"[MacroController] SharedWrite failed (no serial): {cmd}");
-                OnCommandSent?.Invoke(cmd);
-            }
-            return;
-        }
-
-        if (_serialPort != null && _serialPort.IsOpen)
-        {
-            try
-            {
-                _serialPort.Write(cmd);
-                if (logCommands)
-                {
-                    Debug.Log($"[MacroController] Sent: {cmd}");
-                }
-                OnCommandSent?.Invoke(cmd);
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning($"[MacroController] Send failed: {e.Message}");
-            }
-        }
-        else if (logCommands)
-        {
-            Debug.Log($"[MacroController] Would send (no serial): {cmd}");
-            OnCommandSent?.Invoke(cmd);
-        }
+        sharedSerialSource?.ClearOverride();
     }
 
     /// <summary>
@@ -310,6 +181,7 @@ public class MacroController : MonoBehaviour
         _isExecuting = true;
         _currentMacroLabel = label;
         OnMacroStarted?.Invoke(id, label);
+        AuditLog.Log(AuditLog.Category.Macro, $"Macro started: {label} ({id})", macro);
 
         if (logCommands)
         {
@@ -325,6 +197,8 @@ public class MacroController : MonoBehaviour
 
             if (cmd.isPause)
             {
+                // Clear override during pauses so joystick resumes
+                sharedSerialSource?.ClearOverride();
                 if (logCommands)
                 {
                     Debug.Log($"[MacroController] Pausing {cmd.pauseMs}ms");
@@ -333,14 +207,30 @@ public class MacroController : MonoBehaviour
             }
             else
             {
-                SendCommand(cmd.speed, cmd.direction, cmd.robot);
+                int speed = Mathf.Clamp(cmd.speed, 0, 63);
+                int direction = Mathf.Clamp(cmd.direction, 0, 63);
+                int robot = Mathf.Clamp(cmd.robot, 1, 8);
+                string cmdStr = $"S{speed:D2}D{direction:D2}R{robot}";
+
+                _lastCommandSent = cmdStr;
+                sharedSerialSource?.SetOverride(cmdStr, $"Macro:{label}");
+                OnCommandSent?.Invoke(cmdStr);
+                AuditLog.Log(AuditLog.Category.Macro, $"Macro command ({label})", cmdStr);
+
+                if (logCommands)
+                {
+                    Debug.Log($"[MacroController] Override: {cmdStr}");
+                }
+
                 yield return new WaitForSeconds(delayMs / 1000f);
             }
         }
 
+        sharedSerialSource?.ClearOverride();
         _isExecuting = false;
         _currentMacroLabel = "";
         OnMacroCompleted?.Invoke(id, label);
+        AuditLog.Log(AuditLog.Category.Macro, $"Macro completed: {label} ({id})");
 
         if (logCommands)
         {
@@ -477,24 +367,11 @@ public class MacroController : MonoBehaviour
     void OnDestroy()
     {
         StopCurrentMacro();
-
-        // Only close the port if we own it (not shared)
-        if (!_usingSharedSerial && _serialPort != null && _serialPort.IsOpen)
-        {
-            _serialPort.Close();
-            Debug.Log("[MacroController] Serial connection closed.");
-        }
     }
 
     void OnApplicationQuit()
     {
         StopCurrentMacro();
-
-        // Only close the port if we own it (not shared)
-        if (!_usingSharedSerial && _serialPort != null && _serialPort.IsOpen)
-        {
-            _serialPort.Close();
-        }
     }
 }
 
