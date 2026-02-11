@@ -73,6 +73,8 @@ public class DriveEvents : MonoBehaviour
 
     public void OnEnable()
     {
+        Application.targetFrameRate = 30;
+
         _currentDriveState = DriveState.Stopped;
         _lastStateChangedAt = Time.time;
 
