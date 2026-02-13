@@ -3,14 +3,13 @@
     <ui:VisualElement name="DriveMenu" style="flex-grow: 1; align-items: stretch; flex-direction: row; justify-content: space-between;">
         <ui:Image name="CameraImage" picking-mode="Ignore" scale-mode="ScaleAndCrop" uv="1,0,-1,1" style="top: 0; left: 0; right: 0; bottom: 0; position: absolute;"/>
         <ui:VisualElement name="KillSwitch" style="flex-grow: 1; position: absolute; top: 0; left: 0; right: 0; bottom: 1px;"/>
-        <ui:VisualElement name="LeftMenu" picking-mode="Ignore" class="side-menu" style="width: 160px;">
+        <ui:VisualElement name="CameraSelector" class="camera-selector">
+            <ui:DropdownField name="CameraDropdown" style="margin: 0; min-width: 120px;"/>
+            <ui:Button text="Refresh" name="RefreshCamerasBtn" class="button" style="font-size: 10px; padding: 2px 6px; margin-left: 4px;"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="LeftMenu" picking-mode="Ignore" class="side-menu">
             <ui:VisualElement name="LeftMenuTop">
                 <ui:Button text="Exit" name="QuitBtn" class="button mb-1"/>
-                <ui:VisualElement name="CameraSelector" style="margin-top: 10px; background-color: rgba(255, 255, 255, 0.9); border-radius: 8px; padding: 8px;">
-                    <ui:Label text="Camera" style="color: rgb(0, 0, 0); -unity-font-style: bold; margin-bottom: 4px;"/>
-                    <ui:DropdownField name="CameraDropdown" style="margin: 0;"/>
-                    <ui:Button text="Refresh" name="RefreshCamerasBtn" class="button" style="margin-top: 6px; font-size: 12px;"/>
-                </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="ModeIndicatorContainer" style="margin-top: 15px; background-color: rgba(255, 255, 255, 0.9); border-radius: 8px; padding: 8px;">
                 <ui:VisualElement name="ModeIndicatorRow" style="flex-direction: row; align-items: center;">
@@ -57,7 +56,7 @@
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
-        <ui:VisualElement name="RightMenu" picking-mode="Ignore" class="side-menu" style="width: 160px;">
+        <ui:VisualElement name="RightMenu" picking-mode="Ignore" class="side-menu">
             <ui:VisualElement name="AudioButtons" picking-mode="Ignore">
                 <ui:Button text="Hi there" name="AudioBtn_hi_there" class="button mb-1"/>
                 <ui:Button text="Drive me" name="AudioBtn_drive_me" class="button mb-1"/>

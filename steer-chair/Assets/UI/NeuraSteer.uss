@@ -21,8 +21,25 @@
 }
 
 .side-menu {
-    width: 180px;
-    justify-content: space-between;
+    width: 240px;
+    justify-content: flex-start;
+    padding-bottom: 80px;
+}
+
+/* Camera selector – compact bar at top center */
+.camera-selector {
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    translate: -50% 0;
+    flex-direction: row;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+    border-bottom-left-radius: 6px;
+    padding: 4px 8px;
 }
 
 .drive-ready-btn {
@@ -95,6 +112,29 @@
     border-bottom-color: rgb(255, 255, 255);
 }
 
+/* Audio buttons (right menu) – fill vertical space */
+#AudioButtons {
+    flex-grow: 1;
+}
+
+#AudioButtons > .button {
+    flex-grow: 1;
+    flex-shrink: 1;
+    font-size: 24px;
+    margin-bottom: 2px;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+#AudioButtons, #ModeIndicatorContainer {
+    opacity: 0.3;
+    transition: opacity 0.2s ease;
+}
+
+#AudioButtons:hover, #ModeIndicatorContainer:hover {
+    opacity: 1;
+}
+
 #MacroButtonsContainer, #CameraSelector {
     opacity: 0.3;
     transition: opacity 0.2s ease;
@@ -121,17 +161,17 @@
 }
 
 .seat-arrow-btn {
-    width: 54px;
-    height: 54px;
-    font-size: 20px;
+    width: 108px;
+    height: 108px;
+    font-size: 40px;
     -unity-font-style: bold;
     margin-left: 2px;
     margin-right: 2px;
     padding: 0;
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
-    border-bottom-right-radius: 6px;
-    border-bottom-left-radius: 6px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border-bottom-left-radius: 12px;
 }
 
 .seat-arrow-btn.seat-arrow-btn-active {
@@ -171,8 +211,8 @@
 .debug-panel {
     position: absolute;
     bottom: 0;
-    left: 160px;
-    right: 160px;
+    left: 240px;
+    right: 240px;
     flex-direction: column;
     align-items: center;
 }

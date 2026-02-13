@@ -202,6 +202,11 @@ public class WebcamTexDemo : MonoBehaviour
         _webCamTexture = new WebCamTexture(deviceName, requestedWidth, requestedHeight, requestedFPS);
         _webCamTexture.Play();
 
+        // AVCaptureSession can reconfigure the OS audio session sample rate,
+        // causing Unity's audio DSP to run at the wrong rate (slowed/sped-up audio).
+        // Re-sync the audio engine after the camera session has settled.
+        StartCoroutine(ResyncAudioAfterCameraStart());
+
         // Assign to UI image
         if (_uiImage != null)
         {
@@ -210,6 +215,18 @@ public class WebcamTexDemo : MonoBehaviour
 
         // Save as preferred for next time
         preferredCameraName = deviceName;
+    }
+
+    private IEnumerator ResyncAudioAfterCameraStart()
+    {
+        // Wait a frame for AVCaptureSession to finish configuring the audio session
+        yield return null;
+        var config = AudioSettings.GetConfiguration();
+        AudioSettings.Reset(config);
+        if (logCameraChanges)
+        {
+            Debug.Log($"[WebcamTexDemo] Audio re-synced after camera start (DSP rate: {config.sampleRate} Hz)");
+        }
     }
 
     private void StopCamera()
