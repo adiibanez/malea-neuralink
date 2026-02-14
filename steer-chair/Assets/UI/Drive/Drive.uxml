@@ -33,6 +33,11 @@
                 <ui:Button text="Profile" name="ProfileBtn" class="button mb-1"/>
                 <ui:Button text="Power On/Off" name="PowerOnOffBtn" class="button mb-1"/>
             </ui:VisualElement>
+            <ui:VisualElement name="PowerSave" style="margin-top: 15px; background-color: rgba(255, 255, 255, 0.9); border-radius: 8px; padding: 8px;">
+                <ui:Label text="Power Save" style="color: rgb(0, 0, 0); -unity-font-style: bold; margin-bottom: 4px;"/>
+                <ui:Button text="Cam Off" name="CameraToggleBtn" class="button mb-1"/>
+                <ui:Button text="Low FPS" name="FpsToggleBtn" class="button"/>
+            </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="Center" picking-mode="Ignore" style="align-content: flex-end; align-self: auto; justify-content: center; margin-top: 8%; flex-grow: 1; margin-bottom: 2%;">
             <ui:VisualElement picking-mode="Ignore" name="DriveOperations" style="flex-grow: 1;">

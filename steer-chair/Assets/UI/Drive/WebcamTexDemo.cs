@@ -25,6 +25,10 @@ public class WebcamTexDemo : MonoBehaviour
     private List<WebCamDevice> _availableDevices = new List<WebCamDevice>();
     private int _selectedIndex = -1;
     private bool _hasVideoAuthorization = false;
+    private bool _isPaused = false;
+
+    /// <summary>Whether the camera feed is currently paused.</summary>
+    public bool IsPaused => _isPaused;
 
     /// <summary>
     /// Currently active camera name.
@@ -244,6 +248,33 @@ public class WebcamTexDemo : MonoBehaviour
         {
             _uiImage.image = null;
         }
+    }
+
+    /// <summary>
+    /// Pause the camera feed without losing the selected device.
+    /// </summary>
+    public void PauseCamera()
+    {
+        if (_isPaused) return;
+        _isPaused = true;
+        StopCamera();
+        if (logCameraChanges)
+            Debug.Log("[WebcamTexDemo] Camera paused");
+    }
+
+    /// <summary>
+    /// Resume the camera feed on the previously selected device.
+    /// </summary>
+    public void ResumeCamera()
+    {
+        if (!_isPaused) return;
+        _isPaused = false;
+        if (_selectedIndex >= 0 && _selectedIndex < _availableDevices.Count)
+        {
+            StartCamera(_availableDevices[_selectedIndex].name);
+        }
+        if (logCameraChanges)
+            Debug.Log("[WebcamTexDemo] Camera resumed");
     }
 
     /// <summary>

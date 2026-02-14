@@ -49,6 +49,10 @@ public static class DriveUIElementNames
     public const string SeatLeftBtn = "SeatLeftBtn";
     public const string SeatRightBtn = "SeatRightBtn";
 
+    // Power save
+    public const string CameraToggleBtn = "CameraToggleBtn";
+    public const string FpsToggleBtn = "FpsToggleBtn";
+
     // Debug panel
     public const string DebugToggleBtn = "DebugToggleBtn";
     public const string DebugPanel = "DebugPanel";

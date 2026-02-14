@@ -64,6 +64,9 @@ public class DriveEvents : MonoBehaviour
     [Header("Debug Panel")]
     [SerializeField] private DebugPanelController? debugPanelController;
 
+    [Header("Power Save")]
+    [SerializeField] private PowerSaveController? powerSaveController;
+
     private Dictionary<string, Button> _fullButtonList;
     private List<Button> _driveOperationButtons;
     private HoverActivateButton _stopBtn;
@@ -137,6 +140,17 @@ public class DriveEvents : MonoBehaviour
         {
             debugPanelController = gameObject.AddComponent<DebugPanelController>();
             Debug.Log("[DriveEvents] Created DebugPanelController automatically");
+        }
+
+        // Auto-find or create PowerSaveController
+        if (powerSaveController == null)
+        {
+            powerSaveController = GetComponent<PowerSaveController>();
+        }
+        if (powerSaveController == null)
+        {
+            powerSaveController = gameObject.AddComponent<PowerSaveController>();
+            Debug.Log("[DriveEvents] Created PowerSaveController automatically");
         }
 
         VisualElement root = GetComponent<UIDocument>().rootVisualElement;
