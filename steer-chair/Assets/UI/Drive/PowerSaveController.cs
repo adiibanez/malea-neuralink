@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
 #nullable enable
@@ -14,12 +15,30 @@ public class PowerSaveController : MonoBehaviour
     private bool _cameraPaused;
     private bool _lowFps;
 
-    private const int NormalFps = 30;
+    private const string LowFpsPrefKey = "PowerSave_LowFps";
+    private const int SimulatorFps = 60;
+    private const int DriveFps = 30;
     private const int LowFps = 5;
+
+    private bool IsSimulator => SceneManager.GetActiveScene().name == "Simulator";
 
     void OnEnable()
     {
         _webcam = GetComponent<WebcamTexDemo>();
+
+        // Simulator always runs full speed, no persistence needed
+        if (IsSimulator)
+        {
+            _lowFps = false;
+            Application.targetFrameRate = SimulatorFps;
+        }
+        else
+        {
+            // Restore persisted setting; default to low FPS for driving
+            _lowFps = PlayerPrefs.GetInt(LowFpsPrefKey, 1) == 1;
+            Application.targetFrameRate = _lowFps ? LowFps : DriveFps;
+        }
+
         StartCoroutine(InitUI());
     }
 
@@ -38,9 +57,7 @@ public class PowerSaveController : MonoBehaviour
         if (_fpsToggleBtn != null)
             _fpsToggleBtn.clicked += OnFpsToggle;
 
-        // Sync initial state
         _cameraPaused = false;
-        _lowFps = false;
         UpdateButtonLabels();
     }
 
@@ -71,7 +88,18 @@ public class PowerSaveController : MonoBehaviour
     private void OnFpsToggle()
     {
         _lowFps = !_lowFps;
-        Application.targetFrameRate = _lowFps ? LowFps : NormalFps;
+
+        if (IsSimulator)
+        {
+            Application.targetFrameRate = SimulatorFps;
+        }
+        else
+        {
+            Application.targetFrameRate = _lowFps ? LowFps : DriveFps;
+            PlayerPrefs.SetInt(LowFpsPrefKey, _lowFps ? 1 : 0);
+            PlayerPrefs.Save();
+        }
+
         UpdateButtonLabels();
     }
 
