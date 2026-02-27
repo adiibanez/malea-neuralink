@@ -14,6 +14,16 @@ namespace SteerChair.UI
     private Vector2 mousePosition;
     private Vector2 localCenter;
 
+    // Gravity pull: retract arrow to center when cursor is still
+    private const float StillnessThresholdSqr = 4.0f; // ~2px/frame delta; below = "still"
+    private const float StillnessDuration = 0.15f;     // seconds of stillness before gravity kicks in
+    private const float GravityPullSpeed = 300f;       // px/sec toward center (~1s full retraction)
+
+    private Vector2 _rawCursorPosition;
+    private float _lastCursorMovementTime = float.MaxValue; // prevents gravity before first real movement
+    private bool _gravityActive;
+    private float _lastCheckTime;
+
     public MouseJoystick()
     {
         generateVisualContent += OnGenerateVisualContent;
@@ -35,18 +45,58 @@ namespace SteerChair.UI
         Vector2 screenPosition = new Vector2(inputSystemPosition.x, Screen.height - inputSystemPosition.y); // Mouse in Screen space with y starting top
         Vector2 panelPosition = panel.contextType == ContextType.Player
             ? RuntimePanelUtils.ScreenToPanel(panel, screenPosition)                                        // cast to Panel space
-            : contentRect.size/4;                     
-        Vector2 newMousePosition = panel.visualTree.ChangeCoordinatesTo(this, panelPosition);               // mouse in localspace of panel
+            : contentRect.size/4;
+        Vector2 rawPosition = panel.visualTree.ChangeCoordinatesTo(this, panelPosition);                    // mouse in localspace of panel
 
-        newMousePosition = IsInDeadZone(newMousePosition)
-            ? localCenter 
-            : newMousePosition;
+        // Detect cursor movement
+        float cursorDeltaSqr = (rawPosition - _rawCursorPosition).sqrMagnitude;
+        _rawCursorPosition = rawPosition;
 
-        if((mousePosition - newMousePosition).sqrMagnitude < 0.5f)
-            return;
+        float now = Time.unscaledTime;
+        float dt = now - _lastCheckTime;
+        _lastCheckTime = now;
 
-        mousePosition = newMousePosition;
-        RaiseJoystickEvent(newMousePosition);
+        if(dt <= 0f || dt > 0.5f)
+            dt = 0.016f; // sane fallback on first call or after long stall
+
+        if(cursorDeltaSqr > StillnessThresholdSqr)
+        {
+            // Cursor is moving — track directly, disable gravity
+            _lastCursorMovementTime = now;
+            _gravityActive = false;
+
+            Vector2 newMousePosition = IsInDeadZone(rawPosition) ? localCenter : rawPosition;
+
+            if((mousePosition - newMousePosition).sqrMagnitude < 0.5f)
+                return;
+
+            mousePosition = newMousePosition;
+        }
+        else
+        {
+            // Cursor is still
+            float stillTime = now - _lastCursorMovementTime;
+
+            if(stillTime < StillnessDuration)
+                return; // grace period — hold current output
+
+            // Gravity active — pull output toward center
+            _gravityActive = true;
+            Vector2 pulled = Vector2.MoveTowards(mousePosition, localCenter, GravityPullSpeed * dt);
+
+            if((mousePosition - pulled).sqrMagnitude < 0.5f)
+            {
+                if((mousePosition - localCenter).sqrMagnitude < 0.5f)
+                    return; // already at center, nothing to do
+                mousePosition = localCenter;
+            }
+            else
+            {
+                mousePosition = pulled;
+            }
+        }
+
+        RaiseJoystickEvent(mousePosition);
         MarkDirtyRepaint();
     }
 

@@ -12,13 +12,13 @@ public class HoverActivateButton
     private float _hoverStartTime;
     private IVisualElementScheduledItem _scheduler;
 
-    public HoverActivateButton(Button button)
+    public HoverActivateButton(Button button, string gaugeName = "StopGauge")
     {
         _button = button;
-        _fillBar = button.Q<VisualElement>("StopGauge");
+        _fillBar = button.Q<VisualElement>(gaugeName);
 
         if(_fillBar == null)
-            throw new ArgumentNullException($"Button: {button?.name} contains no VisualElement #StopGauge");
+            throw new ArgumentNullException($"Button: {button?.name} contains no VisualElement #{gaugeName}");
 
         button.RegisterCallback<MouseEnterEvent>(OnHoverEnter);
         button.RegisterCallback<MouseLeaveEvent>(OnHoverLeave);

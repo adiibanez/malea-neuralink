@@ -69,6 +69,8 @@ public class DriveEvents : MonoBehaviour
 
     private Dictionary<string, Button> _fullButtonList;
     private List<Button> _driveOperationButtons;
+    private HoverActivateButton _readyBtn;
+    private HoverActivateButton _startBtn;
     private HoverActivateButton _stopBtn;
     private MouseJoystick _mouseJoystick;
 
@@ -174,9 +176,11 @@ public class DriveEvents : MonoBehaviour
             switch (b.name)
             {
                 case DriveUIElementNames.ReadyBtn:
+                    _readyBtn = new HoverActivateButton(b, "ReadyGauge");
                     b.RegisterCallback<ClickEvent>(OnDriveReady);
                     break;
                 case DriveUIElementNames.StartBtn:
+                    _startBtn = new HoverActivateButton(b, "StartGauge");
                     b.RegisterCallback<ClickEvent>(OnDriveStart);
                     break;
                 case DriveUIElementNames.StopBtn:
