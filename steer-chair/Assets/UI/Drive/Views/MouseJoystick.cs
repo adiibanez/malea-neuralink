@@ -12,17 +12,10 @@ namespace SteerChair.UI
     // Y: 0.6f front weighted 60% vs 40% back
     public Vector2 centerRatio = new Vector2(0.5f, 0.6f);
     private Vector2 mousePosition;
+    private Vector2 rawMousePosition;
     private Vector2 localCenter;
-
-    // Gravity pull: retract arrow to center when cursor is still
-    private const float StillnessThresholdSqr = 4.0f; // ~2px/frame delta; below = "still"
-    private const float StillnessDuration = 0.15f;     // seconds of stillness before gravity kicks in
-    private const float GravityPullSpeed = 300f;       // px/sec toward center (~1s full retraction)
-
-    private Vector2 _rawCursorPosition;
-    private float _lastCursorMovementTime = float.MaxValue; // prevents gravity before first real movement
-    private bool _gravityActive;
-    private float _lastCheckTime;
+    private bool _inDeadZone;
+    private VisualElement _deadZoneElement;
 
     public MouseJoystick()
     {
@@ -30,6 +23,7 @@ namespace SteerChair.UI
 
         RegisterCallback<AttachToPanelEvent>(evt =>
         {
+            _deadZoneElement = panel.visualTree.Q("DeadZone");
             schedule
             .Execute(CheckMouseMove)
             .Every(16);
@@ -46,72 +40,41 @@ namespace SteerChair.UI
         Vector2 panelPosition = panel.contextType == ContextType.Player
             ? RuntimePanelUtils.ScreenToPanel(panel, screenPosition)                                        // cast to Panel space
             : contentRect.size/4;
-        Vector2 rawPosition = panel.visualTree.ChangeCoordinatesTo(this, panelPosition);                    // mouse in localspace of panel
+        Vector2 newMousePosition = panel.visualTree.ChangeCoordinatesTo(this, panelPosition);               // mouse in localspace of panel
 
-        // Detect cursor movement
-        float cursorDeltaSqr = (rawPosition - _rawCursorPosition).sqrMagnitude;
-        _rawCursorPosition = rawPosition;
+        if((rawMousePosition - newMousePosition).sqrMagnitude < 0.5f)
+            return;
 
-        float now = Time.unscaledTime;
-        float dt = now - _lastCheckTime;
-        _lastCheckTime = now;
+        _inDeadZone = IsInDeadZone(newMousePosition);
+        rawMousePosition = newMousePosition;
 
-        if(dt <= 0f || dt > 0.5f)
-            dt = 0.016f; // sane fallback on first call or after long stall
+        Vector2 effectivePosition = _inDeadZone ? localCenter : newMousePosition;
+        mousePosition = effectivePosition;
 
-        if(cursorDeltaSqr > StillnessThresholdSqr)
-        {
-            // Cursor is moving — track directly, disable gravity
-            _lastCursorMovementTime = now;
-            _gravityActive = false;
-
-            Vector2 newMousePosition = IsInDeadZone(rawPosition) ? localCenter : rawPosition;
-
-            if((mousePosition - newMousePosition).sqrMagnitude < 0.5f)
-                return;
-
-            mousePosition = newMousePosition;
-        }
-        else
-        {
-            // Cursor is still
-            float stillTime = now - _lastCursorMovementTime;
-
-            if(stillTime < StillnessDuration)
-                return; // grace period — hold current output
-
-            // Gravity active — pull output toward center
-            _gravityActive = true;
-            Vector2 pulled = Vector2.MoveTowards(mousePosition, localCenter, GravityPullSpeed * dt);
-
-            if((mousePosition - pulled).sqrMagnitude < 0.5f)
-            {
-                if((mousePosition - localCenter).sqrMagnitude < 0.5f)
-                    return; // already at center, nothing to do
-                mousePosition = localCenter;
-            }
-            else
-            {
-                mousePosition = pulled;
-            }
-        }
-
-        RaiseJoystickEvent(mousePosition);
+        RaiseJoystickEvent(effectivePosition);
         MarkDirtyRepaint();
     }
 
-    private bool IsInDeadZone(Vector2 newMousePosition)
+    private bool IsInDeadZone(Vector2 localPosition)
     {
-        // Dead zone radii
-        float deadZoneX = 125f;
-        float deadZoneY = 75f;
+        if(_deadZoneElement == null)
+            return false;
 
-        // Distance from center
-        float dx = newMousePosition.x - localCenter.x;
-        float dy = newMousePosition.y - localCenter.y;
+        // Convert from MouseJoystick local space to DeadZone local space
+        Vector2 inDeadZone = this.ChangeCoordinatesTo(_deadZoneElement, localPosition);
+        // Use localBound size (includes padding) so the check matches the visual ellipse
+        Rect rect = new Rect(0, 0, _deadZoneElement.localBound.width, _deadZoneElement.localBound.height);
 
-        // Check if inside ellipse
-        return (dx * dx) / (deadZoneX * deadZoneX) + (dy * dy) / (deadZoneY * deadZoneY) <= 1f;
+        // Ellipse check against the DeadZone element's content rect
+        float cx = rect.center.x;
+        float cy = rect.center.y;
+        float rx = rect.width * 0.5f;
+        float ry = rect.height * 0.5f;
+
+        float dx = inDeadZone.x - cx;
+        float dy = inDeadZone.y - cy;
+
+        return (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1f;
     }
 
     private void RaiseJoystickEvent(Vector2 mousePositon)
@@ -148,10 +111,10 @@ namespace SteerChair.UI
 
         if(enabledInHierarchy)
         {
-            DrawArrow(ctx.painter2D, localCenter, 
+            DrawArrow(ctx.painter2D, localCenter,
                 new Vector2(
-                    Mathf.Clamp(mousePosition.x, contentRect.xMin, contentRect.xMax),
-                    Mathf.Clamp(mousePosition.y, contentRect.yMin, contentRect.yMax)
+                    Mathf.Clamp(rawMousePosition.x, contentRect.xMin, contentRect.xMax),
+                    Mathf.Clamp(rawMousePosition.y, contentRect.yMin, contentRect.yMax)
                 )
             );
         }
@@ -178,8 +141,9 @@ namespace SteerChair.UI
         const float arrowHeadLength = 12f;
         const float arrowHeadAngle = 25f;
 
-        painter.strokeColor = Color.red;
-        painter.fillColor = Color.red;
+        Color arrowColor = _inDeadZone ? Color.black : Color.red;
+        painter.strokeColor = arrowColor;
+        painter.fillColor = arrowColor;
         painter.lineWidth = 2f;
 
         // Main line
