@@ -122,7 +122,23 @@ namespace SteerChair.UI
 
     private void DrawCross(Painter2D painter, Vector2 center)
     {
-        painter.strokeColor = Color.black;
+        // Outline
+        painter.strokeColor = Color.white;
+        painter.lineWidth = 5f;
+        painter.lineCap = LineCap.Round;
+
+        painter.BeginPath();
+        painter.MoveTo(new Vector2(contentRect.xMin, center.y));
+        painter.LineTo(new Vector2(contentRect.xMax, center.y));
+        painter.Stroke();
+
+        painter.BeginPath();
+        painter.MoveTo(new Vector2(center.x, contentRect.yMin));
+        painter.LineTo(new Vector2(center.x, contentRect.yMax));
+        painter.Stroke();
+
+        // Inner stroke
+        painter.strokeColor = new Color(0f, 0f, 0f, 0.6f);
         painter.lineWidth = 2f;
 
         painter.BeginPath();
@@ -138,24 +154,48 @@ namespace SteerChair.UI
 
     private void DrawArrow(Painter2D painter, Vector2 from, Vector2 to)
     {
-        const float arrowHeadLength = 12f;
+        const float arrowHeadLength = 24f;
         const float arrowHeadAngle = 25f;
+        const float outlineWidth = 10f;
+        const float innerWidth = 6f;
 
-        Color arrowColor = _inDeadZone ? Color.black : Color.red;
-        painter.strokeColor = arrowColor;
-        painter.fillColor = arrowColor;
-        painter.lineWidth = 2f;
+        Color arrowColor = _inDeadZone ? new Color(0.2f, 0.2f, 0.2f) : new Color(0.9f, 0.1f, 0.1f);
+        Color outlineColor = _inDeadZone ? Color.white : new Color(0.3f, 0f, 0f);
 
-        // Main line
+        Vector2 direction = (from - to).normalized;
+        Vector2 right = Quaternion.Euler(0, 0, arrowHeadAngle) * direction;
+        Vector2 left  = Quaternion.Euler(0, 0, -arrowHeadAngle) * direction;
+
+        painter.lineCap = LineCap.Round;
+        painter.lineJoin = LineJoin.Round;
+
+        // Outline pass
+        painter.strokeColor = outlineColor;
+        painter.fillColor = outlineColor;
+        painter.lineWidth = outlineWidth;
+
         painter.BeginPath();
         painter.MoveTo(from);
         painter.LineTo(to);
         painter.Stroke();
 
-        // Arrow head
-        Vector2 direction = (from - to).normalized;
-        Vector2 right = Quaternion.Euler(0, 0, arrowHeadAngle) * direction;
-        Vector2 left  = Quaternion.Euler(0, 0, -arrowHeadAngle) * direction;
+        painter.BeginPath();
+        painter.MoveTo(to);
+        painter.LineTo(to + right * arrowHeadLength);
+        painter.LineTo(to + left * arrowHeadLength);
+        painter.ClosePath();
+        painter.Fill();
+        painter.Stroke();
+
+        // Inner pass
+        painter.strokeColor = arrowColor;
+        painter.fillColor = arrowColor;
+        painter.lineWidth = innerWidth;
+
+        painter.BeginPath();
+        painter.MoveTo(from);
+        painter.LineTo(to);
+        painter.Stroke();
 
         painter.BeginPath();
         painter.MoveTo(to);

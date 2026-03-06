@@ -2783,79 +2783,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1389542012}
   m_LocalEulerAnglesHint: {x: 3.611, y: -70.8, z: 22.857}
---- !u!1001 &388158036
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: -8679921383154817045, guid: 282d37dd2276c459d8fc14da7797f91b, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 82.322
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 282d37dd2276c459d8fc14da7797f91b, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 82.322
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 282d37dd2276c459d8fc14da7797f91b, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 82.322
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 282d37dd2276c459d8fc14da7797f91b, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 9.243
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 282d37dd2276c459d8fc14da7797f91b, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.7452
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 282d37dd2276c459d8fc14da7797f91b, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -0.15
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 282d37dd2276c459d8fc14da7797f91b, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 0.5891587
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 282d37dd2276c459d8fc14da7797f91b, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0.5891587
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 282d37dd2276c459d8fc14da7797f91b, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0.39101413
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 282d37dd2276c459d8fc14da7797f91b, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0.39101413
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 282d37dd2276c459d8fc14da7797f91b, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: -90
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 282d37dd2276c459d8fc14da7797f91b, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 282d37dd2276c459d8fc14da7797f91b, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 67.143
-      objectReference: {fileID: 0}
-    - target: {fileID: -7511558181221131132, guid: 282d37dd2276c459d8fc14da7797f91b, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: c23a7aa7e20f045f48dc5dc74c4fbbcf, type: 2}
-    - target: {fileID: 919132149155446097, guid: 282d37dd2276c459d8fc14da7797f91b, type: 3}
-      propertyPath: m_Name
-      value: Meshy_AI_Physicist_in_Focus_0117091352_texture
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 282d37dd2276c459d8fc14da7797f91b, type: 3}
 --- !u!1 &399849281
 GameObject:
   m_ObjectHideFlags: 0
@@ -3074,7 +3001,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8546592268145060853, guid: 20b999708054b414fb753ca68d3514eb, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 8.679
+      value: 8.86
       objectReference: {fileID: 0}
     - target: {fileID: 8546592268145060853, guid: 20b999708054b414fb753ca68d3514eb, type: 3}
       propertyPath: m_LocalPosition.y
@@ -3082,7 +3009,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8546592268145060853, guid: 20b999708054b414fb753ca68d3514eb, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 1.147
+      value: 0.43
       objectReference: {fileID: 0}
     - target: {fileID: 8546592268145060853, guid: 20b999708054b414fb753ca68d3514eb, type: 3}
       propertyPath: m_LocalRotation.w
@@ -9939,9 +9866,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DriveEvents
   inputSource: 2
-  sensoctoProvider: {fileID: 0}
   macroButtonsUI: {fileID: 0}
   rightMenuButtons: {fileID: 0}
+  serialStatusIndicator: {fileID: 0}
+  seatArrowController: {fileID: 0}
+  debugPanelController: {fileID: 0}
+  powerSaveController: {fileID: 0}
 --- !u!114 &1624499165
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10007,26 +9937,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5353a23779273419ebe14e2ae0888e57, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Sensocto::Sensocto.JoystickSensorEmitter
-  serverUrl: wss://sensocto.fly.dev/socket
-  bearerToken: 
-  connectOnStart: 1
-  useAuthManager: 1
-  sensorName: Simulator Joystick
-  sensorType: joystick
-  samplingRateHz: 30
-  batchSize: 5
-  sendSeparateAxes: 1
-  sendCombinedXY: 1
-  changeThreshold: 0.01
-  OnConnected:
-    m_PersistentCalls:
-      m_Calls: []
-  OnDisconnected:
-    m_PersistentCalls:
-      m_Calls: []
-  OnSensorRegistered:
-    m_PersistentCalls:
-      m_Calls: []
 --- !u!1 &1643593667
 GameObject:
   m_ObjectHideFlags: 0
@@ -13619,4 +13529,3 @@ SceneRoots:
   - {fileID: 416424156}
   - {fileID: 622740744}
   - {fileID: 1141953666}
-  - {fileID: 388158036}
